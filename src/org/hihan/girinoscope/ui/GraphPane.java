@@ -2,6 +2,7 @@ package org.hihan.girinoscope.ui;
 
 import java.awt.BasicStroke;
 import java.awt.Color;
+import java.awt.Cursor;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
@@ -10,8 +11,11 @@ import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
 import java.awt.Stroke;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseMotionListener;
 
 import javax.swing.JPanel;
+import javax.swing.SwingUtilities;
 
 import org.hihan.girinoscope.ui.Axis.GraphLabel;
 
@@ -26,6 +30,8 @@ public class GraphPane extends JPanel {
 
     private Color DATA_COLOR = Color.CYAN.darker();
 
+    private Color THRESHOLD_COLOR = Color.ORANGE.darker();
+
     private Font font = Font.decode(Font.MONOSPACED);
 
     private Stroke dashed = new BasicStroke(1, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, new float[] { 5 }, 0);
@@ -36,6 +42,45 @@ public class GraphPane extends JPanel {
 
     private byte[] data;
 
+    private Rectangle graphArea;
+
+    private int threshold;
+
+    private boolean thresholdGrabbed;
+
+    public GraphPane(int threshold) {
+        this.threshold = threshold;
+        addMouseMotionListener(new MouseMotionListener() {
+
+            @Override
+            public void mouseMoved(MouseEvent event) {
+                Point thresholdAnchorLocation = toGraphArea(0, GraphPane.this.threshold);
+                SwingUtilities.convertPointToScreen(thresholdAnchorLocation, GraphPane.this);
+                boolean nowLocked = thresholdAnchorLocation.distance(event.getLocationOnScreen()) < 16;
+                if (nowLocked != thresholdGrabbed) {
+                    thresholdGrabbed = nowLocked;
+                    if (thresholdGrabbed) {
+                        setCursor(new Cursor(Cursor.HAND_CURSOR));
+                    } else {
+                        setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
+                    }
+                    repaint();
+                }
+            }
+
+            @Override
+            public void mouseDragged(MouseEvent event) {
+                if (thresholdGrabbed) {
+                    Point graphAreaPosition = event.getLocationOnScreen();
+                    SwingUtilities.convertPointFromScreen(graphAreaPosition, GraphPane.this);
+                    int newThreshold = toData(graphAreaPosition.x, graphAreaPosition.y).y;
+                    GraphPane.this.threshold = Math.max(0, Math.min(newThreshold, 255));
+                    repaint();
+                }
+            }
+        });
+    }
+
     public void setCoordinateSystem(Axis xAxis, Axis yAxis) {
         this.xAxis = xAxis;
         this.yAxis = yAxis;
@@ -45,6 +90,10 @@ public class GraphPane extends JPanel {
     public void setData(byte[] data) {
         this.data = data;
         repaint();
+    }
+
+    public int getThreshold() {
+        return threshold;
     }
 
     @Override
@@ -64,33 +113,34 @@ public class GraphPane extends JPanel {
             xAxis.complete(g2d, font);
             yAxis.complete(g2d, font);
 
+            graphArea = new Rectangle(16, 16, w - 32, h - 32);
             Insets labelInsets = new Insets(2, 12, 0, 0);
-
-            g2d.translate(16, 16);
-            w -= 32 + yAxis.getMaxBounds().width + labelInsets.left + labelInsets.right;
-            h -= 32 + xAxis.getMaxBounds().height + labelInsets.top + labelInsets.bottom;
+            graphArea.width -= yAxis.getMaxBounds().width + labelInsets.left + labelInsets.right;
+            graphArea.height -= xAxis.getMaxBounds().height + labelInsets.top + labelInsets.bottom;
 
             if (w > 0 && h > 0) {
-                paintXAxis(g2d, w, h, labelInsets);
-                paintYAxis(g2d, w, h, labelInsets);
+                paintXAxis(g2d, labelInsets);
+                paintYAxis(g2d, labelInsets);
                 if (data != null) {
-                    paintData(g2d, w, h);
+                    paintData(g2d);
                 }
+                paintThreshold(g2d);
             }
         }
     }
 
-    private void paintXAxis(Graphics2D g, int w, int h, Insets labelInsets) {
+    private void paintXAxis(Graphics2D g, Insets labelInsets) {
+        g.translate(graphArea.x, graphArea.y);
         GraphLabel[] xLabels = xAxis.graphLabels();
         for (int i = 0; i < xLabels.length; ++i) {
             GraphLabel xLabel = xLabels[i];
-            int xOffset = i * w / (xLabels.length - 1);
+            int xOffset = i * graphArea.width / (xLabels.length - 1);
 
             Stroke defaultStroke = g.getStroke();
 
             g.setStroke(i % (xLabels.length / 2) != 0 ? dashed : defaultStroke);
             g.setColor(i % (xLabels.length - 1) == 0 ? DIVISION_COLOR : SUB_DIVISION_COLOR);
-            g.drawLine(xOffset, 0, xOffset, h);
+            g.drawLine(xOffset, 0, xOffset, graphArea.height);
 
             g.setStroke(defaultStroke);
             g.setColor(TEXT_COLOR);
@@ -104,21 +154,23 @@ public class GraphPane extends JPanel {
                 dx = -bounds.width / 2;
             }
             int dy = labelInsets.top;
-            g.drawString(xLabel.getLabel(), xOffset + dx, h + bounds.height + dy);
+            g.drawString(xLabel.getLabel(), xOffset + dx, graphArea.height + bounds.height + dy);
         }
+        g.translate(-graphArea.x, -graphArea.y);
     }
 
-    private void paintYAxis(Graphics2D g, int w, int h, Insets labelInsets) {
+    private void paintYAxis(Graphics2D g, Insets labelInsets) {
+        g.translate(graphArea.x, graphArea.y);
         GraphLabel[] yLabels = yAxis.graphLabels();
         for (int i = 0; i < yLabels.length; ++i) {
             GraphLabel yLabel = yLabels[yLabels.length - i - 1];
-            int yOffset = i * h / (yLabels.length - 1);
+            int yOffset = i * graphArea.height / (yLabels.length - 1);
 
             Stroke defaultStroke = g.getStroke();
 
             g.setStroke(i % (yLabels.length / 2) != 0 ? dashed : defaultStroke);
             g.setColor(i % (yLabels.length - 1) == 0 ? DIVISION_COLOR : SUB_DIVISION_COLOR);
-            g.drawLine(0, yOffset, w, yOffset);
+            g.drawLine(0, yOffset, graphArea.width, yOffset);
 
             g.setStroke(defaultStroke);
             g.setColor(TEXT_COLOR);
@@ -132,24 +184,52 @@ public class GraphPane extends JPanel {
                 dy = bounds.height / 2;
             }
             int dx = labelInsets.left;
-            g.drawString(yLabel.getLabel(), w + dx, yOffset + dy);
+            g.drawString(yLabel.getLabel(), graphArea.width + dx, yOffset + dy);
         }
+        g.translate(-graphArea.x, -graphArea.y);
     }
 
-    private void paintData(Graphics2D g, int w, int h) {
+    private void paintData(Graphics2D g) {
         g.setColor(DATA_COLOR);
-        double yMax = 255;
-        double xMax = data.length;
-        double x = 0;
+        int u = 0;
         Point previousPoint = null;
         for (byte b : data) {
-            double y = yMax - (b & 0xFF);
-            Point point = new Point((int) Math.round(x * w / xMax), (int) Math.round(y * h / yMax));
+            Point point = toGraphArea(u++, b & 0xFF);
             if (previousPoint != null) {
                 g.drawLine(previousPoint.x, previousPoint.y, point.x, point.y);
             }
             previousPoint = point;
-            x += 1.0;
         }
+    }
+
+    private void paintThreshold(Graphics2D g) {
+        g.setColor(THRESHOLD_COLOR);
+        Point point = toGraphArea(0, threshold);
+        g.drawLine(point.x, point.y, point.x + graphArea.width, point.y);
+
+        Graphics2D gg = (Graphics2D) g.create();
+        gg.translate(point.x, point.y);
+        gg.rotate(Math.PI / 4);
+        if (thresholdGrabbed) {
+            gg.fill3DRect(-4, -4, 9, 9, true);
+        } else {
+            gg.fill3DRect(-3, -3, 7, 7, true);
+        }
+    }
+
+    private Point toGraphArea(int u, int v) {
+        double vMax = 255;
+        double uMax = 1280;
+        int x = (int) Math.round(u * graphArea.width / uMax + graphArea.x);
+        int y = (int) Math.round((vMax - v) * graphArea.height / vMax + graphArea.y);
+        return new Point(x, y);
+    }
+
+    private Point toData(int x, int y) {
+        double vMax = 255;
+        double uMax = 1280;
+        int u = (int) Math.round(x - graphArea.x * uMax / graphArea.width);
+        int v = (int) Math.round(vMax - (y - graphArea.y) * vMax / graphArea.height);
+        return new Point(u, v);
     }
 }

@@ -15,9 +15,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -101,14 +103,18 @@ public class UI extends JFrame {
         protected Void doInBackground() throws Exception {
             setStatus("blue", "Contacting Girino on %s...", frozenPortId.getName());
 
-            executor.submit(new Callable<Void>() {
+            try {
+                executor.submit(new Callable<Void>() {
 
-                @Override
-                public Void call() throws Exception {
-                    girino.etablishConnection(frozenPortId, frozenParameters);
-                    return null;
-                }
-            }).get(5, TimeUnit.SECONDS);
+                    @Override
+                    public Void call() throws Exception {
+                        girino.etablishConnection(frozenPortId, frozenParameters);
+                        return null;
+                    }
+                }).get(5, TimeUnit.SECONDS);
+            } catch (TimeoutException e) {
+                throw new TimeoutException("No Girino detected on " + frozenPortId.getName());
+            }
 
             setStatus("blue", "Acquiring data from %s...", frozenPortId.getName());
             while (!isCancelled()) {
@@ -136,8 +142,10 @@ public class UI extends JFrame {
                     get();
                 }
                 setStatus("blue", "Done acquiring data from %s.", frozenPortId.getName());
-            } catch (Exception e) {
+            } catch (ExecutionException e) {
                 setStatus("red", e.getCause().getMessage());
+            } catch (Exception e) {
+                setStatus("red", e.getMessage());
             }
         }
     }
@@ -150,6 +158,7 @@ public class UI extends JFrame {
 
         @Override
         public void actionPerformed(ActionEvent event) {
+            parameters.put(Parameter.THRESHOLD, graphPane.getThreshold());
             currentDataAcquisitionTask = new DataAcquisitionTask();
             currentDataAcquisitionTask.execute();
         }
@@ -172,6 +181,7 @@ public class UI extends JFrame {
 
         @Override
         public void actionPerformed(ActionEvent event) {
+            new AboutDialog(UI.this).setVisible(true);
         }
     };
 
@@ -188,11 +198,11 @@ public class UI extends JFrame {
         setTitle("Girinoscope");
 
         parameters.put(Parameter.PRESCALER, 32);
-        parameters.put(Parameter.THRESHOLD, 127);
+        parameters.put(Parameter.THRESHOLD, 150);
 
         setLayout(new BorderLayout());
 
-        graphPane = new GraphPane();
+        graphPane = new GraphPane(parameters.get(Parameter.THRESHOLD));
         graphPane.setPreferredSize(new Dimension(800, 600));
         add(graphPane, BorderLayout.CENTER);
 
@@ -352,7 +362,7 @@ public class UI extends JFrame {
 
     private void setStatus(String color, String message, Object... arguments) {
         final String htmlMessage = String.format("<html><font color=%s>%s</color></html>", color, String.format(
-                message, arguments));
+                message != null ? message : "", arguments));
         if (SwingUtilities.isEventDispatchThread()) {
             statusBarLabel.setText(htmlMessage);
         } else {
