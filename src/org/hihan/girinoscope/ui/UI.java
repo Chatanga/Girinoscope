@@ -6,8 +6,6 @@ import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.IOException;
@@ -18,10 +16,13 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.logging.ConsoleHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.logging.SimpleFormatter;
 
 import javax.swing.AbstractAction;
 import javax.swing.AbstractButton;
@@ -43,6 +44,8 @@ import javax.swing.WindowConstants;
 import org.hihan.girinoscope.comm.Girino;
 import org.hihan.girinoscope.comm.Girino.Parameter;
 import org.hihan.girinoscope.comm.Girino.PrescalerInfo;
+import org.hihan.girinoscope.comm.Girino.TriggerEventMode;
+import org.hihan.girinoscope.comm.Girino.VoltageReference;
 import org.hihan.girinoscope.comm.Serial;
 
 @SuppressWarnings("serial")
@@ -51,6 +54,14 @@ public class UI extends JFrame {
     private static final Logger logger = Logger.getLogger(UI.class.getName());
 
     public static void main(String[] args) throws Exception {
+
+        Logger rootLogger = Logger.getLogger("org.hihan.girinoscope");
+        rootLogger.setLevel(Level.ALL);
+        ConsoleHandler handler = new ConsoleHandler();
+        handler.setFormatter(new SimpleFormatter());
+        handler.setLevel(Level.ALL);
+        rootLogger.addHandler(handler);
+
         SwingUtilities.invokeAndWait(new Runnable() {
             public void run() {
                 try {
@@ -72,7 +83,7 @@ public class UI extends JFrame {
 
     private CommPortIdentifier portId;
 
-    private Map<Parameter, Integer> parameters = new HashMap<Parameter, Integer>();
+    private Map<Parameter, Integer> parameters = Girino.getDefaultParameters(new HashMap<Parameter, Integer>());
 
     private GraphPane graphPane;
 
@@ -82,13 +93,13 @@ public class UI extends JFrame {
 
     private DataAcquisitionTask currentDataAcquisitionTask;
 
+    private ExecutorService executor = Executors.newSingleThreadExecutor();
+
     private class DataAcquisitionTask extends SwingWorker<Void, byte[]> {
 
         private CommPortIdentifier frozenPortId = portId;
 
         private Map<Parameter, Integer> frozenParameters = new HashMap<Parameter, Integer>(parameters);
-
-        private ExecutorService executor = Executors.newSingleThreadExecutor();
 
         public DataAcquisitionTask() {
             startAcquiringAction.setEnabled(false);
@@ -103,17 +114,20 @@ public class UI extends JFrame {
         protected Void doInBackground() throws Exception {
             setStatus("blue", "Contacting Girino on %s...", frozenPortId.getName());
 
-            try {
-                executor.submit(new Callable<Void>() {
+            Future<Void> connection = executor.submit(new Callable<Void>() {
 
-                    @Override
-                    public Void call() throws Exception {
-                        girino.etablishConnection(frozenPortId, frozenParameters);
-                        return null;
-                    }
-                }).get(5, TimeUnit.SECONDS);
+                @Override
+                public Void call() throws Exception {
+                    girino.etablishConnection(frozenPortId, frozenParameters);
+                    return null;
+                }
+            });
+            try {
+                connection.get(5, TimeUnit.SECONDS);
             } catch (TimeoutException e) {
                 throw new TimeoutException("No Girino detected on " + frozenPortId.getName());
+            } finally {
+                connection.cancel(true);
             }
 
             setStatus("blue", "Acquiring data from %s...", frozenPortId.getName());
@@ -159,6 +173,7 @@ public class UI extends JFrame {
         @Override
         public void actionPerformed(ActionEvent event) {
             parameters.put(Parameter.THRESHOLD, graphPane.getThreshold());
+            parameters.put(Parameter.WAIT_DURATION, graphPane.getWaitDuration());
             currentDataAcquisitionTask = new DataAcquisitionTask();
             currentDataAcquisitionTask.execute();
         }
@@ -197,12 +212,9 @@ public class UI extends JFrame {
     public UI() {
         setTitle("Girinoscope");
 
-        parameters.put(Parameter.PRESCALER, 32);
-        parameters.put(Parameter.THRESHOLD, 150);
-
         setLayout(new BorderLayout());
 
-        graphPane = new GraphPane(parameters.get(Parameter.THRESHOLD));
+        graphPane = new GraphPane(parameters.get(Parameter.THRESHOLD), parameters.get(Parameter.WAIT_DURATION));
         graphPane.setPreferredSize(new Dimension(800, 600));
         add(graphPane, BorderLayout.CENTER);
 
@@ -223,26 +235,20 @@ public class UI extends JFrame {
             startAcquiringAction.setEnabled(false);
             setStatus("red", "No USB to serial adaptation port detected.");
         }
-
-        addWindowListener(new WindowAdapter() {
-
-            @Override
-            public void windowClosing(WindowEvent event) {
-                if (currentDataAcquisitionTask != null) {
-                    currentDataAcquisitionTask.stop();
-                }
-            }
-        });
     }
 
     @Override
     public void dispose() {
-        super.dispose();
         try {
+            if (currentDataAcquisitionTask != null) {
+                currentDataAcquisitionTask.stop();
+            }
+            executor.shutdown();
             girino.disconnect();
         } catch (IOException e) {
             logger.log(Level.WARNING, "When disconnecting from Girino.", e);
         }
+        super.dispose();
     }
 
     private JMenuBar createMenuBar() {
@@ -255,6 +261,8 @@ public class UI extends JFrame {
         JMenu toolMenu = new JMenu("Tools");
         toolMenu.add(createSerialMenu());
         toolMenu.add(createPrescalerMenu());
+        toolMenu.add(createTriggerEventMenu());
+        toolMenu.add(createVoltageReferenceMenu());
         toolMenu.addSeparator();
         toolMenu.add(createThemeMenu());
         menuBar.add(toolMenu);
@@ -290,7 +298,7 @@ public class UI extends JFrame {
     private JMenu createPrescalerMenu() {
         JMenu menu = new JMenu("Acquisition rate / Time frame");
         ButtonGroup group = new ButtonGroup();
-        for (final PrescalerInfo info : Girino.getPrescalerInfos()) {
+        for (final PrescalerInfo info : PrescalerInfo.values()) {
             Action setPrescaler = new AbstractAction(info.description) {
 
                 @Override
@@ -303,6 +311,48 @@ public class UI extends JFrame {
             };
             AbstractButton button = new JCheckBoxMenuItem(setPrescaler);
             if (info.value == parameters.get(Parameter.PRESCALER)) {
+                button.doClick();
+            }
+            group.add(button);
+            menu.add(button);
+        }
+        return menu;
+    }
+
+    private JMenu createTriggerEventMenu() {
+        JMenu menu = new JMenu("Trigger event mode");
+        ButtonGroup group = new ButtonGroup();
+        for (final TriggerEventMode mode : TriggerEventMode.values()) {
+            Action setPrescaler = new AbstractAction(mode.description) {
+
+                @Override
+                public void actionPerformed(ActionEvent event) {
+                    parameters.put(Parameter.TRIGGER_EVENT, mode.value);
+                }
+            };
+            AbstractButton button = new JCheckBoxMenuItem(setPrescaler);
+            if (mode.value == parameters.get(Parameter.TRIGGER_EVENT)) {
+                button.doClick();
+            }
+            group.add(button);
+            menu.add(button);
+        }
+        return menu;
+    }
+
+    private JMenu createVoltageReferenceMenu() {
+        JMenu menu = new JMenu("Voltage reference");
+        ButtonGroup group = new ButtonGroup();
+        for (final VoltageReference reference : VoltageReference.values()) {
+            Action setPrescaler = new AbstractAction(reference.description) {
+
+                @Override
+                public void actionPerformed(ActionEvent event) {
+                    parameters.put(Parameter.VOLTAGE_REFERENCE, reference.value);
+                }
+            };
+            AbstractButton button = new JCheckBoxMenuItem(setPrescaler);
+            if (reference.value == parameters.get(Parameter.VOLTAGE_REFERENCE)) {
                 button.doClick();
             }
             group.add(button);

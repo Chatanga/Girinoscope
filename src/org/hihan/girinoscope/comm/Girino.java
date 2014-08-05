@@ -14,7 +14,7 @@ public class Girino {
         BUFFER_SIZE(null, true), //
         BAUD_RATE(null, true), //
         PRESCALER("p", true), //
-        VOLTAGE_REFERENCE("r", false), // Added by me.
+        VOLTAGE_REFERENCE("r", false), //
         TRIGGER_EVENT("e", true), //
         WAIT_DURATION("w", true), //
         THRESHOLD("t", true);
@@ -26,6 +26,30 @@ public class Girino {
         Parameter(String command, boolean readable) {
             this.command = command;
             this.readable = readable;
+        }
+
+        public String getIdentifier() {
+            if (this == WAIT_DURATION) {
+                return "waitDuration";
+            } else {
+                return name().toLowerCase().replace('_', ' ');
+            }
+        }
+
+        public String getIdentifier2() {
+            String name = name();
+            StringBuilder identifier = new StringBuilder();
+            boolean uppercase = false;
+            for (int i = 0; i < name.length(); ++i) {
+                char c = name.charAt(i);
+                if (c == '_') {
+                    uppercase = true;
+                } else {
+                    identifier.append(uppercase ? Character.toUpperCase(c) : Character.toLowerCase(c));
+                    uppercase = false;
+                }
+            }
+            return identifier.toString();
         }
 
         public String getDescription() {
@@ -56,14 +80,44 @@ public class Girino {
             String warning = n < 5 ? " (Too high for LM324N, use TL084 instead)" : "";
             description = String.format("%.0f kHz / %.0f ms%s", frequency, timeframe, warning);
         }
+
+        public static List<PrescalerInfo> values() {
+            List<PrescalerInfo> infos = new LinkedList<PrescalerInfo>();
+            for (int i = 2; i < 8; ++i) {
+                infos.add(new PrescalerInfo(i));
+            }
+            return infos;
+        }
     }
 
-    public static List<PrescalerInfo> getPrescalerInfos() {
-        List<PrescalerInfo> infos = new LinkedList<PrescalerInfo>();
-        for (int i = 2; i < 8; ++i) {
-            infos.add(new PrescalerInfo(i));
+    public enum TriggerEventMode {
+
+        TOGGLE(0, "Toggle"), //
+        FALLING_EDGE(2, "Falling edge"), //
+        RISING_EDGE(3, "Riging edge");
+
+        public int value;
+        public String description;
+
+        private TriggerEventMode(int value, String description) {
+            this.value = value;
+            this.description = description;
         }
-        return infos;
+    }
+
+    public enum VoltageReference {
+
+        AREF(0, "AREF, Internal Vref turned off"), //
+        AVCC(2, "AVCC with external capacitor at AREF pin"), //
+        INTERNAL(3, "Internal 1.1V Voltage Reference with external capacitor at AREF pin");
+
+        public int value;
+        public String description;
+
+        private VoltageReference(int value, String description) {
+            this.value = value;
+            this.description = description;
+        }
     }
 
     private static final String READY_MESSAGE = "Girino ready";
@@ -79,6 +133,16 @@ public class Girino {
     private CommPortIdentifier portId;
 
     private Map<Parameter, Integer> parameters = new HashMap<Parameter, Integer>();
+
+    public static Map<Parameter, Integer> getDefaultParameters(Map<Parameter, Integer> parameters) {
+        parameters.put(Parameter.BUFFER_SIZE, 1280);
+        parameters.put(Parameter.PRESCALER, 32);
+        parameters.put(Parameter.VOLTAGE_REFERENCE, VoltageReference.AVCC.value);
+        parameters.put(Parameter.TRIGGER_EVENT, TriggerEventMode.TOGGLE.value);
+        parameters.put(Parameter.WAIT_DURATION, 1280 - 32);
+        parameters.put(Parameter.THRESHOLD, 150);
+        return parameters;
+    }
 
     private void connect(CommPortIdentifier newPortId) throws Exception {
         if (newPortId != null) {
@@ -147,8 +211,9 @@ public class Girino {
                     String data = serial.readLine();
                     String[] items = data.split(":");
                     if (items.length > 1) {
-                        String name = items[0].trim();
-                        if (name.equals(String.format("Setting %s to", parameter.getDescription().toLowerCase()))) {
+                        String message = items[0].trim();
+                        String identifier = parameter.getIdentifier();
+                        if (message.equals(String.format("Setting %s to", identifier))) {
                             int value = Integer.parseInt(items[1].trim());
                             parameters.put(parameter, value);
                             if (!same(entry.getValue(), parameters.get(parameter))) {
@@ -156,7 +221,7 @@ public class Girino {
                                         + parameter.getDescription());
                             }
                         } else {
-                            throw new IOException("Not matching returned parameter " + parameter.getDescription());
+                            throw new IOException("Not matching returned parameter " + identifier);
                         }
                     } else {
                         throw new IOException("Unknown parameter " + parameter.getDescription());

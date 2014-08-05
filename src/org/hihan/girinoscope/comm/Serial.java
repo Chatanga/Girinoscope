@@ -15,6 +15,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
+import javax.swing.text.html.HTMLDocument.HTMLReader.IsindexAction;
+
 public class Serial implements Closeable {
 
     private static final Logger logger = Logger.getLogger(Serial.class.getName());
@@ -121,7 +123,7 @@ public class Serial implements Closeable {
                     }
                 } else {
                     /*
-                     * Sleeping here allows us to be interruped (the serial is
+                     * Sleeping here allows us to be interrupted (the serial is
                      * not by itself).
                      */
                     Thread.sleep(READ_DELAY);
@@ -131,7 +133,7 @@ public class Serial implements Closeable {
             logger.log(Level.FINE, "Read aborted");
             return null;
         }
-        logger.log(Level.FINE, "< ({})", line);
+        logger.log(Level.FINE, "< ({0})", line);
         return line.toString();
     }
 
@@ -147,7 +149,7 @@ public class Serial implements Closeable {
                     offset += size;
                 } else {
                     /*
-                     * Sleeping here allows us to be interruped (the serial is
+                     * Sleeping here allows us to be interrupted (the serial is
                      * not by itself).
                      */
                     Thread.sleep(READ_DELAY);
@@ -157,7 +159,7 @@ public class Serial implements Closeable {
             logger.log(Level.FINE, "Read aborted");
             return -1;
         }
-        logger.log(Level.FINE, "< {} byte(s)", offset);
+        logger.log(Level.FINE, "< {0} byte(s)", offset);
         return offset;
     }
 
@@ -166,7 +168,7 @@ public class Serial implements Closeable {
             output.write(line.charAt(i));
         }
         output.flush();
-        logger.log(Level.FINE, "> ({})", line);
+        logger.log(Level.FINE, "> ({0})", line);
     }
 
     @Override
