@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<project name="MacOSX" basedir=".">
+
+	<property name="target.dir" value="${basedir}/../../target/macosx" />
+
+	<target name="build">
+		<mkdir dir="${target.dir}" />
+
+		<copy todir="${target.dir}/${app.name}.app">
+			<fileset dir="${basedir}/template.app" includes="**" />
+		</copy>
+
+		<copy todir="${target.dir}/${app.name}.app/Contents/Resources/Java">
+            <fileset dir="${target.dir}/../lib" includes="*.jar" />
+		</copy>
+
+		<chmod file="${target.dir}/${app.name}.app/Contents/MacOS/JavaApplicationStub" perm="755" />
+	</target>
+
+	<target name="dist">
+		<replace file="${target.dir}/${app.name}.app/Contents/Info.plist" token="APP.NAME" value="${app.name}" />
+		<replace file="${target.dir}/${app.name}.app/Contents/Info.plist" token="APP.VERSION" value="${app.version}" />
+		<replace file="${target.dir}/${app.name}.app/Contents/Info.plist" token="APP.REVISION" value="${app.revision}" />
+
+		<exec executable="ditto" dir="${target.dir}">
+			<arg line="-c -k -rsrc . ../${app.name}-${app.version}-macosx.zip" />
+		</exec>
+	</target>
+
+</project>

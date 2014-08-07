@@ -1,0 +1,39 @@
+<?xml version="1.0"?>
+<project name="Windows" basedir=".">
+
+	<property name="target.dir" value="${basedir}/../../target/windows" />
+
+	<available file="${target.dir}/launch4j/launch4j.jar" property="launch4j.present"/>
+	
+	<target name="download-launch4j-windows" unless="launch4j.present">
+		<get src="http://sourceforge.net/projects/launch4j/files/launch4j-3/3.4/launch4j-3.4-win32.zip" dest="${target.dir}" usetimestamp="true" skipexisting="true" verbose="true" />
+		<unzip dest="${target.dir}" src="${target.dir}/launch4j-3.4-win32.zip" overwrite="true" />
+	</target>
+
+	<target name="build" depends="download-launch4j-windows">
+		<mkdir dir="${target.dir}" />
+		<mkdir dir="${target.dir}/dist" />
+
+		<copy todir="${target.dir}/dist">
+			<fileset dir="${target.dir}/../lib" includes="*.jar" />
+			<fileset dir="${basedir}/lib" includes="*.dll" />
+			<fileset dir="${basedir}/lib" includes="drivers/**" />
+		</copy>
+
+		<taskdef name="launch4j" classname="net.sf.launch4j.ant.Launch4jTask" classpath="${target.dir}/launch4j/launch4j.jar; ${target.dir}/launch4j/lib/xstream.jar" />
+		<launch4j configFile="${basedir}/launch4j/config.xml" outfile="${target.dir}/dist/girinoscope.exe" />
+		<launch4j configFile="${basedir}/launch4j/config_debug.xml" outfile="${target.dir}/dist/girinoscope_debug.exe" />
+
+		<!-- cygwin requires html, dll, and exe to have the +x flag -->
+		<chmod perm="755">
+			<fileset dir="${target.dir}" includes="**/*.html, **/*.dll, **/*.exe" />
+		</chmod>
+	</target>
+
+	<target name="dist">
+		<zip destfile="${target.dir}/${app.name}-${app.version}-windows.zip">
+			<zipfileset dir="${target.dir}/dist" prefix="${app.name}-${app.version}" />
+		</zip>
+	</target>
+
+</project>
