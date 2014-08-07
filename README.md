@@ -23,14 +23,16 @@ and some strange behaviors which can very well originate from the way I've built
 Girino.h, line 41:
 
 <code>
-    // Replace 3 by 4 since the wait duration range is [0, 1280[.<br/>
+    // Replace 3 by 4 since the wait duration range is [0, 1280[.
+    
     #define COMBUFFERSIZE   3   // Size of buffer for incoming numbers
 </code>
 
 Girino.ino, line 229:
 
 <code>
-    // Replace 'uint8' by 'uint16' for the same reason.<br/>
+    // Replace 'uint8' by 'uint16' for the same reason.
+    
     uint8_t newT = atoi( commandBuffer );
 </code>
 
