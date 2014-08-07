@@ -15,8 +15,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
-import javax.swing.text.html.HTMLDocument.HTMLReader.IsindexAction;
-
+@SuppressWarnings("unused")
 public class Serial implements Closeable {
 
     private static final Logger logger = Logger.getLogger(Serial.class.getName());
@@ -25,13 +24,15 @@ public class Serial implements Closeable {
      * http://blog.cedarsoft.com/2010/11/setting-java-library-path-programmatically
      */
     static {
-        try {
-            System.setProperty("java.library.path", "lib");
-            Field fieldSysPath = ClassLoader.class.getDeclaredField("sys_paths");
-            fieldSysPath.setAccessible(true);
-            fieldSysPath.set(null, null);
-        } catch (Exception e) {
-            throw new RuntimeException("Fail to force the reload of system paths property.", e);
+        if (false) {
+            try {
+                System.setProperty("java.library.path", "build/linux/lib64");
+                Field fieldSysPath = ClassLoader.class.getDeclaredField("sys_paths");
+                fieldSysPath.setAccessible(true);
+                fieldSysPath.set(null, null);
+            } catch (Exception e) {
+                throw new RuntimeException("Fail to force the reload of system paths property.", e);
+            }
         }
     }
 

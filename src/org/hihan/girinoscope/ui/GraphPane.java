@@ -48,6 +48,8 @@ public class GraphPane extends JPanel {
 
     private static final int U_MAX = 1279;
 
+    private Stroke dataStroke = new BasicStroke(1, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL);
+
     private Axis xAxis;
 
     private Axis yAxis;
@@ -120,9 +122,7 @@ public class GraphPane extends JPanel {
 
                     case WAIT_DURATION_RULE:
                         int newWaitDuration = uv.x;
-                        // GraphPane.this.waitDuration = Math.max(0,
-                        // Math.min(newWaitDuration, U_MAX));
-                        GraphPane.this.waitDuration = Math.max(0, Math.min(newWaitDuration, V_MAX));
+                        GraphPane.this.waitDuration = Math.max(0, Math.min(newWaitDuration, U_MAX));
                         break;
 
                     default:
@@ -132,6 +132,10 @@ public class GraphPane extends JPanel {
                 }
             }
         });
+    }
+
+    public void setDataStrokeWidth(float width) {
+        dataStroke = new BasicStroke(width, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL);
     }
 
     public void setCoordinateSystem(Axis xAxis, Axis yAxis) {
@@ -249,6 +253,8 @@ public class GraphPane extends JPanel {
 
     private void paintData(Graphics2D g) {
         g.setColor(DATA_COLOR);
+        Stroke defaultStroke = g.getStroke();
+        g.setStroke(dataStroke);
         int u = U_MAX;
         Point previousPoint = null;
         for (byte b : data) {
@@ -258,6 +264,7 @@ public class GraphPane extends JPanel {
             }
             previousPoint = point;
         }
+        g.setStroke(defaultStroke);
     }
 
     private void paintThresholdRule(Graphics2D g) {

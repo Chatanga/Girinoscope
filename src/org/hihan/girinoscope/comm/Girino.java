@@ -109,7 +109,7 @@ public class Girino {
 
         AREF(0, "AREF, Internal Vref turned off"), //
         AVCC(2, "AVCC with external capacitor at AREF pin"), //
-        INTERNAL(3, "Internal 1.1V Voltage Reference with external capacitor at AREF pin");
+        INTERNAL(3, "Internal 1.1V Vref with external capacitor at AREF pin");
 
         public int value;
         public String description;
@@ -218,7 +218,8 @@ public class Girino {
                             parameters.put(parameter, value);
                             if (!same(entry.getValue(), parameters.get(parameter))) {
                                 throw new IOException("Change has been rejected for parameter "
-                                        + parameter.getDescription());
+                                        + parameter.getDescription() + ": " + entry.getValue() + " =/= "
+                                        + parameters.get(parameter)  );
                             }
                         } else {
                             throw new IOException("Not matching returned parameter " + identifier);

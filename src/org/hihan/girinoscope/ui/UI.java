@@ -28,7 +28,6 @@ import javax.swing.AbstractAction;
 import javax.swing.AbstractButton;
 import javax.swing.Action;
 import javax.swing.ButtonGroup;
-import javax.swing.ImageIcon;
 import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -47,6 +46,7 @@ import org.hihan.girinoscope.comm.Girino.PrescalerInfo;
 import org.hihan.girinoscope.comm.Girino.TriggerEventMode;
 import org.hihan.girinoscope.comm.Girino.VoltageReference;
 import org.hihan.girinoscope.comm.Serial;
+import org.hihan.girinoscope.ui.images.Icon;
 
 @SuppressWarnings("serial")
 public class UI extends JFrame {
@@ -56,7 +56,7 @@ public class UI extends JFrame {
     public static void main(String[] args) throws Exception {
 
         Logger rootLogger = Logger.getLogger("org.hihan.girinoscope");
-        rootLogger.setLevel(Level.ALL);
+        rootLogger.setLevel(Level.WARNING);
         ConsoleHandler handler = new ConsoleHandler();
         handler.setFormatter(new SimpleFormatter());
         handler.setLevel(Level.ALL);
@@ -97,9 +97,9 @@ public class UI extends JFrame {
 
     private class DataAcquisitionTask extends SwingWorker<Void, byte[]> {
 
-        private CommPortIdentifier frozenPortId = portId;
+        private CommPortIdentifier frozenPortId;
 
-        private Map<Parameter, Integer> frozenParameters = new HashMap<Parameter, Integer>(parameters);
+        private Map<Parameter, Integer> frozenParameters = new HashMap<Parameter, Integer>();
 
         public DataAcquisitionTask() {
             startAcquiringAction.setEnabled(false);
@@ -112,26 +112,31 @@ public class UI extends JFrame {
 
         @Override
         protected Void doInBackground() throws Exception {
-            setStatus("blue", "Contacting Girino on %s...", frozenPortId.getName());
-
-            Future<Void> connection = executor.submit(new Callable<Void>() {
-
-                @Override
-                public Void call() throws Exception {
-                    girino.etablishConnection(frozenPortId, frozenParameters);
-                    return null;
-                }
-            });
-            try {
-                connection.get(5, TimeUnit.SECONDS);
-            } catch (TimeoutException e) {
-                throw new TimeoutException("No Girino detected on " + frozenPortId.getName());
-            } finally {
-                connection.cancel(true);
-            }
-
-            setStatus("blue", "Acquiring data from %s...", frozenPortId.getName());
             while (!isCancelled()) {
+                synchronized (UI.this) {
+                    frozenPortId = portId;
+                    frozenParameters.putAll(parameters);
+                }
+
+                setStatus("blue", "Contacting Girino on %s...", frozenPortId.getName());
+
+                Future<Void> connection = executor.submit(new Callable<Void>() {
+
+                    @Override
+                    public Void call() throws Exception {
+                        girino.etablishConnection(frozenPortId, frozenParameters);
+                        return null;
+                    }
+                });
+                try {
+                    connection.get(5, TimeUnit.SECONDS);
+                } catch (TimeoutException e) {
+                    throw new TimeoutException("No Girino detected on " + frozenPortId.getName());
+                } finally {
+                    connection.cancel(true);
+                }
+
+                setStatus("blue", "Acquiring data from %s...", frozenPortId.getName());
                 byte[] buffer = girino.acquireData();
                 if (buffer != null) {
                     publish(buffer);
@@ -144,7 +149,12 @@ public class UI extends JFrame {
 
         @Override
         protected void process(List<byte[]> buffer) {
+            logger.log(Level.FINE, "{0} data buffer(s) to display.", buffer.size());
             graphPane.setData(buffer.get(buffer.size() - 1));
+            synchronized (UI.this) {
+                parameters.put(Parameter.THRESHOLD, graphPane.getThreshold());
+                parameters.put(Parameter.WAIT_DURATION, graphPane.getWaitDuration());
+            }
         }
 
         @Override
@@ -164,23 +174,23 @@ public class UI extends JFrame {
         }
     }
 
-    private final Action startAcquiringAction = new AbstractAction("Start acquiring", new ImageIcon(getClass()
-            .getResource("images/media-record.png"))) {
+    private final Action startAcquiringAction = new AbstractAction("Start acquiring", Icon.get("media-record.png")) {
         {
             putValue(Action.SHORT_DESCRIPTION, "Start acquiring data from Girino.");
         }
 
         @Override
         public void actionPerformed(ActionEvent event) {
-            parameters.put(Parameter.THRESHOLD, graphPane.getThreshold());
-            parameters.put(Parameter.WAIT_DURATION, graphPane.getWaitDuration());
+            synchronized (UI.this) {
+                parameters.put(Parameter.THRESHOLD, graphPane.getThreshold());
+                parameters.put(Parameter.WAIT_DURATION, graphPane.getWaitDuration());
+            }
             currentDataAcquisitionTask = new DataAcquisitionTask();
             currentDataAcquisitionTask.execute();
         }
     };
 
-    private final Action stopAcquiringAction = new AbstractAction("Stop acquiring", new ImageIcon(getClass()
-            .getResource("images/media-playback-stop.png"))) {
+    private final Action stopAcquiringAction = new AbstractAction("Stop acquiring", Icon.get("media-playback-stop.png")) {
         {
             putValue(Action.SHORT_DESCRIPTION, "Stop acquiring data from Girino.");
         }
@@ -191,8 +201,7 @@ public class UI extends JFrame {
         }
     };
 
-    private final Action aboutAction = new AbstractAction("About Girinoscope", new ImageIcon(getClass().getResource(
-            "images/stock_about.png"))) {
+    private final Action aboutAction = new AbstractAction("About Girinoscope", Icon.get("help-about.png")) {
 
         @Override
         public void actionPerformed(ActionEvent event) {
@@ -200,8 +209,7 @@ public class UI extends JFrame {
         }
     };
 
-    private final Action exitAction = new AbstractAction("Quit", new ImageIcon(getClass().getResource(
-            "images/application-exit.png"))) {
+    private final Action exitAction = new AbstractAction("Quit", Icon.get("application-exit.png")) {
 
         @Override
         public void actionPerformed(ActionEvent event) {
@@ -211,6 +219,7 @@ public class UI extends JFrame {
 
     public UI() {
         setTitle("Girinoscope");
+        setIconImage(Icon.getImage("icon.png"));
 
         setLayout(new BorderLayout());
 
@@ -264,6 +273,7 @@ public class UI extends JFrame {
         toolMenu.add(createTriggerEventMenu());
         toolMenu.add(createVoltageReferenceMenu());
         toolMenu.addSeparator();
+        toolMenu.add(createDataStrokeWidthMenu());
         toolMenu.add(createThemeMenu());
         menuBar.add(toolMenu);
 
@@ -303,7 +313,9 @@ public class UI extends JFrame {
 
                 @Override
                 public void actionPerformed(ActionEvent event) {
-                    parameters.put(Parameter.PRESCALER, info.value);
+                    synchronized (UI.this) {
+                        parameters.put(Parameter.PRESCALER, info.value);
+                    }
                     Axis xAxis = new Axis(0, info.timeframe, "%.0f ms", 7);
                     Axis yAxis = new Axis(-2.5, 2.5, "%.2f V", 5);
                     graphPane.setCoordinateSystem(xAxis, yAxis);
@@ -327,7 +339,9 @@ public class UI extends JFrame {
 
                 @Override
                 public void actionPerformed(ActionEvent event) {
-                    parameters.put(Parameter.TRIGGER_EVENT, mode.value);
+                    synchronized (UI.this) {
+                        parameters.put(Parameter.TRIGGER_EVENT, mode.value);
+                    }
                 }
             };
             AbstractButton button = new JCheckBoxMenuItem(setPrescaler);
@@ -348,7 +362,9 @@ public class UI extends JFrame {
 
                 @Override
                 public void actionPerformed(ActionEvent event) {
-                    parameters.put(Parameter.VOLTAGE_REFERENCE, reference.value);
+                    synchronized (UI.this) {
+                        parameters.put(Parameter.VOLTAGE_REFERENCE, reference.value);
+                    }
                 }
             };
             AbstractButton button = new JCheckBoxMenuItem(setPrescaler);
@@ -378,6 +394,27 @@ public class UI extends JFrame {
                 }
             };
             AbstractButton button = new JCheckBoxMenuItem(setLnF);
+            group.add(button);
+            menu.add(button);
+        }
+        return menu;
+    }
+
+    private JMenu createDataStrokeWidthMenu() {
+        JMenu menu = new JMenu("Data stroke width");
+        ButtonGroup group = new ButtonGroup();
+        for (final int width : new int[] { 1, 2, 3 }) {
+            Action setStrokeWidth = new AbstractAction(width + " px") {
+
+                @Override
+                public void actionPerformed(ActionEvent event) {
+                    graphPane.setDataStrokeWidth(width);
+                }
+            };
+            AbstractButton button = new JCheckBoxMenuItem(setStrokeWidth);
+            if (width == 1) {
+                button.doClick();
+            }
             group.add(button);
             menu.add(button);
         }
