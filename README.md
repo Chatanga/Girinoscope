@@ -21,11 +21,13 @@ There are a small bug when changing the value through the serial interface
 and some strange behaviors which can very well originate from the way I've built my Girino.
 
 Girino.h, line 41: replace 3 by 4 since the wait duration range is [0, 1280[.
+
 <code>
     #define COMBUFFERSIZE   3   // Size of buffer for incoming numbers
 </code>
 
 Girino.ino, line 229: replace 'uint8' by 'uint16' for the same reason.
+
 <code>
     uint8_t newT = atoi( commandBuffer );
 </code>
