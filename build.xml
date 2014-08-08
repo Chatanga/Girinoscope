@@ -56,7 +56,6 @@
 	</condition>
 
 	<target name="run" description="Run Girinoscope.">
-		<echo message="jvmarg=${jvmarg}"/>
 		<java classname="org.hihan.girinoscope.ui.UI" fork="true">
 			<jvmarg value="${jvmarg}"/>
 			<classpath>
