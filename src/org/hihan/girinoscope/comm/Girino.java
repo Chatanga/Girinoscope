@@ -219,7 +219,7 @@ public class Girino {
                             if (!same(entry.getValue(), parameters.get(parameter))) {
                                 throw new IOException("Change has been rejected for parameter "
                                         + parameter.getDescription() + ": " + entry.getValue() + " =/= "
-                                        + parameters.get(parameter)  );
+                                        + parameters.get(parameter));
                             }
                         } else {
                             throw new IOException("Not matching returned parameter " + identifier);

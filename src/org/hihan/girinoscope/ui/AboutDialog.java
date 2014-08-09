@@ -27,83 +27,83 @@ import javax.swing.text.html.StyleSheet;
 @SuppressWarnings("serial")
 public class AboutDialog extends JDialog {
 
-	private static final Logger logger = Logger.getLogger(AboutDialog.class.getName());
+    private static final Logger logger = Logger.getLogger(AboutDialog.class.getName());
 
-	public AboutDialog(JFrame owner) {
-		super(owner, true);
-		setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
+    public AboutDialog(JFrame owner) {
+        super(owner, true);
+        setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
 
-		setLayout(new BorderLayout());
-		setBackground(Color.WHITE);
-		add(createEditorPane(), BorderLayout.CENTER);
+        setLayout(new BorderLayout());
+        setBackground(Color.WHITE);
+        add(createEditorPane(), BorderLayout.CENTER);
 
-		pack();
-		setLocationRelativeTo(owner);
-	}
+        pack();
+        setLocationRelativeTo(owner);
+    }
 
-	private JEditorPane createEditorPane() {
-		try {
-			InputStream input = getClass().getResource("about.html").openStream();
-			try {
-				BufferedReader reader = new BufferedReader(new InputStreamReader(input));
-				StringBuilder html = new StringBuilder();
-				String line;
-				while ((line = reader.readLine()) != null) {
-					html.append(line);
-				}
-				return createEditorPane(html.toString());
-			} finally {
-				input.close();
-			}
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
-	}
+    private JEditorPane createEditorPane() {
+        try {
+            InputStream input = getClass().getResource("about.html").openStream();
+            try {
+                BufferedReader reader = new BufferedReader(new InputStreamReader(input));
+                StringBuilder html = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    html.append(line);
+                }
+                return createEditorPane(html.toString());
+            } finally {
+                input.close();
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
-	private JEditorPane createEditorPane(String text) {
-		HTMLEditorKit kit = new HTMLEditorKit();
-		StyleSheet styleSheet = kit.getStyleSheet();
-		styleSheet.addRule("body {bgcolor: white;}");
+    private JEditorPane createEditorPane(String text) {
+        HTMLEditorKit kit = new HTMLEditorKit();
+        StyleSheet styleSheet = kit.getStyleSheet();
+        styleSheet.addRule("body {bgcolor: white;}");
 
-		JEditorPane editorPane = new JEditorPane();
-		editorPane.setBorder(new EmptyBorder(8, 8, 8, 8));
-		editorPane.setOpaque(true);
-		editorPane.setEditorKit(kit);
-		editorPane.setContentType("text/html");
-		editorPane.setText(text);
-		editorPane.setEditable(false);
+        JEditorPane editorPane = new JEditorPane();
+        editorPane.setBorder(new EmptyBorder(8, 8, 8, 8));
+        editorPane.setOpaque(true);
+        editorPane.setEditorKit(kit);
+        editorPane.setContentType("text/html");
+        editorPane.setText(text);
+        editorPane.setEditable(false);
 
-		editorPane.addHyperlinkListener(new HyperlinkListener() {
-			@Override
-			public void hyperlinkUpdate(final HyperlinkEvent event) {
-				if (event.getEventType() == HyperlinkEvent.EventType.ACTIVATED) {
-					final String href = getHref(event);
-					try {
-						Desktop.getDesktop().browse(new URI(href));
-					} catch (IOException e) {
-						logger.log(Level.WARNING, "Can’t open link " + href, e);
-					} catch (URISyntaxException e) {
-						logger.log(Level.WARNING, "Can’t open link " + href, e);
-					}
-				}
-			}
-		});
+        editorPane.addHyperlinkListener(new HyperlinkListener() {
+            @Override
+            public void hyperlinkUpdate(final HyperlinkEvent event) {
+                if (event.getEventType() == HyperlinkEvent.EventType.ACTIVATED) {
+                    final String href = getHref(event);
+                    try {
+                        Desktop.getDesktop().browse(new URI(href));
+                    } catch (IOException e) {
+                        logger.log(Level.WARNING, "Can’t open link " + href, e);
+                    } catch (URISyntaxException e) {
+                        logger.log(Level.WARNING, "Can’t open link " + href, e);
+                    }
+                }
+            }
+        });
 
-		return editorPane;
-	}
+        return editorPane;
+    }
 
-	private String getHref(HyperlinkEvent event) {
-		AttributeSet attributes = event.getSourceElement().getAttributes();
-		return getAttribute((AttributeSet) getAttribute(attributes, "a"), "href").toString();
-	}
+    private String getHref(HyperlinkEvent event) {
+        AttributeSet attributes = event.getSourceElement().getAttributes();
+        return getAttribute((AttributeSet) getAttribute(attributes, "a"), "href").toString();
+    }
 
-	private Object getAttribute(AttributeSet attributes, String name) {
-		for (Enumeration<?> enumeration = attributes.getAttributeNames(); enumeration.hasMoreElements();) {
-			Object nameKey = enumeration.nextElement();
-			if (name.equals(nameKey.toString())) {
-				return attributes.getAttribute(nameKey);
-			}
-		}
-		return null;
-	}
+    private Object getAttribute(AttributeSet attributes, String name) {
+        for (Enumeration<?> enumeration = attributes.getAttributeNames(); enumeration.hasMoreElements();) {
+            Object nameKey = enumeration.nextElement();
+            if (name.equals(nameKey.toString())) {
+                return attributes.getAttribute(nameKey);
+            }
+        }
+        return null;
+    }
 }

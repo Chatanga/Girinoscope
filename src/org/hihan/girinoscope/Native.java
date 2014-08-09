@@ -9,92 +9,92 @@ import javax.swing.UIManager;
 
 public class Native {
 
-	private static final Logger logger = Logger.getLogger(Native.class.getName());
+    private static final Logger logger = Logger.getLogger(Native.class.getName());
 
-	public enum OS {
+    public enum OS {
 
-		Linux("linux"), MacOSX("mac"), Windows("win");
+        Linux("linux"), MacOSX("mac"), Windows("win");
 
-		String[] names;
+        String[] names;
 
-		OS(String... names) {
-			this.names = names;
-		}
+        OS(String... names) {
+            this.names = names;
+        }
 
-		public static OS resolve(String osName) {
-			for (OS os : values()) {
-				for (String name : os.names) {
-					if (osName.toLowerCase().contains(name)) {
-						return os;
-					}
-				}
-			}
-			return null;
-		}
-	}
+        public static OS resolve(String osName) {
+            for (OS os : values()) {
+                for (String name : os.names) {
+                    if (osName.toLowerCase().contains(name)) {
+                        return os;
+                    }
+                }
+            }
+            return null;
+        }
+    }
 
-	public static void setLibraryPath() {
-		String osName = System.getProperty("os.name");
-		OS os = OS.resolve(osName);
-		if (os != null) {
-			boolean is64bits = "64".equals(System.getProperty("sun.arch.data.model").toLowerCase());
+    public static void setLibraryPath() {
+        String osName = System.getProperty("os.name");
+        OS os = OS.resolve(osName);
+        if (os != null) {
+            boolean is64bits = "64".equals(System.getProperty("sun.arch.data.model").toLowerCase());
 
-			File libPath = new File("native");
-			libPath = new File(libPath, os.name().toLowerCase());
-			libPath = new File(libPath, is64bits ? "lib64" : "lib");
+            File libPath = new File("native");
+            libPath = new File(libPath, os.name().toLowerCase());
+            libPath = new File(libPath, is64bits ? "lib64" : "lib");
 
-			if (libPath.exists()) {
-				/*
-				 * http://blog.cedarsoft.com/2010/11/setting-java-library-path-
-				 * programmatically
-				 */
-				try {
-					System.setProperty("java.library.path", libPath.getAbsolutePath());
-					Field fieldSysPath = ClassLoader.class.getDeclaredField("sys_paths");
-					fieldSysPath.setAccessible(true);
-					fieldSysPath.set(null, null);
-				} catch (Exception e) {
-					throw new RuntimeException("Fail to force the reload of system paths property.", e);
-				}
-			} else {
-				throw new RuntimeException("Unsupported architecture: " + (is64bits ? "64" : "32") + " bits");
-			}
-		} else {
-			throw new RuntimeException("Unsupported operating system: " + osName);
-		}
-	}
+            if (libPath.exists()) {
+                /*
+                 * http://blog.cedarsoft.com/2010/11/setting-java-library-path-
+                 * programmatically
+                 */
+                try {
+                    System.setProperty("java.library.path", libPath.getAbsolutePath());
+                    Field fieldSysPath = ClassLoader.class.getDeclaredField("sys_paths");
+                    fieldSysPath.setAccessible(true);
+                    fieldSysPath.set(null, null);
+                } catch (Exception e) {
+                    throw new RuntimeException("Fail to force the reload of system paths property.", e);
+                }
+            } else {
+                throw new RuntimeException("Unsupported architecture: " + (is64bits ? "64" : "32") + " bits");
+            }
+        } else {
+            throw new RuntimeException("Unsupported operating system: " + osName);
+        }
+    }
 
-	public static void setLookAndFeel() {
-		String osName = System.getProperty("os.name");
-		OS os = OS.resolve(osName);
-		try {
-			boolean lafSet = false;
-			if (os == OS.MacOSX) {
-				String quaquaLaf = "ch.randelshofer.quaqua.QuaquaLookAndFeel";
-				boolean quaquaAvailable;
-				try {
-					quaquaAvailable = Native.class.getClassLoader().loadClass(quaquaLaf) != null;
-				} catch (ClassNotFoundException e) {
-					quaquaAvailable = false;
-				}
-				if (quaquaAvailable) {
-					// set system properties here that affect Quaqua
-					// for example the default layout policy for tabbed
-					// panes:
-					System.setProperty("Quaqua.tabLayoutPolicy", "wrap");
-					try {
-						UIManager.setLookAndFeel(quaquaLaf);
-						lafSet = true;
-					} catch (Exception e) {
-						lafSet = false;
-					}
-				}
-			}
-			if (!lafSet) {
-				UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-			}
-		} catch (Exception e) {
-			logger.log(Level.WARNING, "Failed to load the sysem LaF.", e);
-		}
-	}
+    public static void setLookAndFeel() {
+        String osName = System.getProperty("os.name");
+        OS os = OS.resolve(osName);
+        try {
+            boolean lafSet = false;
+            if (os == OS.MacOSX) {
+                String quaquaLaf = "ch.randelshofer.quaqua.QuaquaLookAndFeel";
+                boolean quaquaAvailable;
+                try {
+                    quaquaAvailable = Native.class.getClassLoader().loadClass(quaquaLaf) != null;
+                } catch (ClassNotFoundException e) {
+                    quaquaAvailable = false;
+                }
+                if (quaquaAvailable) {
+                    // set system properties here that affect Quaqua
+                    // for example the default layout policy for tabbed
+                    // panes:
+                    System.setProperty("Quaqua.tabLayoutPolicy", "wrap");
+                    try {
+                        UIManager.setLookAndFeel(quaquaLaf);
+                        lafSet = true;
+                    } catch (Exception e) {
+                        lafSet = false;
+                    }
+                }
+            }
+            if (!lafSet) {
+                UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+            }
+        } catch (Exception e) {
+            logger.log(Level.WARNING, "Failed to load the sysem LaF.", e);
+        }
+    }
 }
