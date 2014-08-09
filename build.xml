@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
-<project name="Girinoscope" default="build" basedir=".">
+<project name="Girinoscope" default="usage" basedir=".">
 
 	<property name="target.dir" value="${basedir}/build" />
 
-	<target name="clean" description="Clean the craft table.">
+	<target name="clean" description="Clean the crafting table.">
 		<delete dir="${target.dir}" />
 	</target>
 
@@ -46,15 +46,19 @@
 		<os family="unix" />
 	</condition>
 
-	<target name="run" description="Run Girinoscope.">
-		<java classname="org.hihan.girinoscope.ui.UI" fork="true">
-			<jvmarg value="${jvmarg}" />
-			<classpath>
-				<fileset dir="${basedir}/lib" includes="*.jar" />
-				<fileset dir="${target.dir}/lib" includes="*.jar" />
-			</classpath>
-		</java>
-	</target>
+    <target name="run" description="Run Girinoscope.">
+        <echo message="Running on ${os.name} (${os.arch})." />
+        <java classname="org.hihan.girinoscope.ui.UI" fork="true">
+            <jvmarg value="${jvmarg}" />
+            <classpath>
+                <fileset dir="${basedir}/lib" includes="*.jar" />
+                <fileset dir="${target.dir}/lib" includes="*.jar" />
+            </classpath>
+        </java>
+    </target>
+
+    <target name="usage" description="Display usage.">
+        <echo message="Use 'ant -projecthelp' to list the available targets." />
+    </target>
 
 </project>
-
