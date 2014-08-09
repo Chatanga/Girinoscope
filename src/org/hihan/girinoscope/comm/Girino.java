@@ -94,7 +94,7 @@ public class Girino {
 
         TOGGLE(0, "Toggle"), //
         FALLING_EDGE(2, "Falling edge"), //
-        RISING_EDGE(3, "Riging edge");
+        RISING_EDGE(3, "Rising edge");
 
         public int value;
         public String description;
