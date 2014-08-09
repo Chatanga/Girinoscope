@@ -41,6 +41,7 @@ Build
 
 There are no binary package for the Girinoscope at this time, so you will need to build it yourself at home.
 You just need a [JDK 1.6 or higher](http://www.oracle.com/technetwork/java/javase/downloads/index.html)
+(64 bits is currently only supported for the Linux version)
 and [Ant](http://ant.apache.org/bindownload.cgi).
 Nothing particular exotic in the Java world.
 Once these tools installed, a simple `ant build` at the root of this project will do the job.

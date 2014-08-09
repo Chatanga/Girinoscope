@@ -10,13 +10,7 @@
 	<target name="build" description="Build the Girinoscope library.">
 		<mkdir dir="${target.dir}/classes" />
 
-		<javac
-			includeantruntime="false"
-			srcdir="${basedir}/src"
-			destdir="${target.dir}/classes"
-			source="1.6"
-			target="1.6"
-			debug="on">
+		<javac includeantruntime="false" srcdir="${basedir}/src" destdir="${target.dir}/classes" source="1.6" target="1.6" debug="on">
 			<classpath>
 				<fileset dir="${basedir}/lib" includes="*.jar" />
 			</classpath>
@@ -35,19 +29,16 @@
 			</manifest>
 		</jar>
 	</target>
-	
-	<!-- The '-client' is just a default inoffensive option to avoid
-	an empty value for the 'jvmarg' which turns to be a problem for Ant.
-	-->
+
 	<condition property="jvmarg" value="-d32">
-		<os name="Windows 7"/>
-	</condition>
-	<condition property="jvmarg" value="-client">
 		<os family="windows" />
 	</condition>
 	<condition property="jvmarg" value="-d32">
 		<os family="mac" />
 	</condition>
+	<!-- The '-client' is just a default inoffensive option to avoid
+    an empty value for the 'jvmarg' which turns to be a problem for Ant.
+    -->
 	<condition property="jvmarg" value="-client">
 		<!-- Tested after 'mac' because a Mac is a Unix
 		(and remember that Ant properties are immutable).
@@ -57,7 +48,7 @@
 
 	<target name="run" description="Run Girinoscope.">
 		<java classname="org.hihan.girinoscope.ui.UI" fork="true">
-			<jvmarg value="${jvmarg}"/>
+			<jvmarg value="${jvmarg}" />
 			<classpath>
 				<fileset dir="${basedir}/lib" includes="*.jar" />
 				<fileset dir="${target.dir}/lib" includes="*.jar" />
