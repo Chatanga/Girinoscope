@@ -77,7 +77,7 @@ public class Girino {
             value = (int) Math.pow(2, n);
             frequency = 625.0 / value;
             timeframe = 1280 / frequency;
-            String warning = n < 5 ? " (Too high for LM324N, use TL084 instead)" : "";
+            String warning = n < 5 ? " (Not working at home, too high?)" : "";
             description = String.format("%.0f kHz / %.0f ms%s", frequency, timeframe, warning);
         }
 
