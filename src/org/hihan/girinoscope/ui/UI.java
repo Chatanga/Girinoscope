@@ -29,6 +29,7 @@ import javax.swing.AbstractButton;
 import javax.swing.Action;
 import javax.swing.ButtonGroup;
 import javax.swing.JCheckBoxMenuItem;
+import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JMenu;
@@ -83,9 +84,7 @@ public class UI extends JFrame {
 
     private GraphPane graphPane;
 
-    private StatusBar statusBar;
-
-    private JLabel statusBarLabel;
+    private JLabel statusLabel = new JLabel();
 
     private DataAcquisitionTask currentDataAcquisitionTask;
 
@@ -223,14 +222,9 @@ public class UI extends JFrame {
         graphPane.setPreferredSize(new Dimension(800, 600));
         add(graphPane, BorderLayout.CENTER);
 
-        statusBarLabel = new JLabel();
-        statusBar = new StatusBar();
-        statusBar.add(statusBarLabel, BorderLayout.CENTER);
-        add(statusBar, BorderLayout.SOUTH);
-
         setJMenuBar(createMenuBar());
-
         add(createToolBar(), BorderLayout.NORTH);
+        add(createStatusBar(), BorderLayout.SOUTH);
 
         stopAcquiringAction.setEnabled(false);
 
@@ -417,9 +411,10 @@ public class UI extends JFrame {
         return menu;
     }
 
-    private JToolBar createToolBar() {
+    private JComponent createToolBar() {
         JToolBar toolBar = new JToolBar();
         toolBar.setFloatable(false);
+        toolBar.setRollover(true);
         final Component start = toolBar.add(startAcquiringAction);
         final Component stop = toolBar.add(stopAcquiringAction);
         start.addPropertyChangeListener("enabled", new PropertyChangeListener() {
@@ -443,17 +438,24 @@ public class UI extends JFrame {
         return toolBar;
     }
 
+    private JComponent createStatusBar() {
+        JToolBar toolBar = new JToolBar();
+        toolBar.setFloatable(false);
+        toolBar.add(statusLabel);
+        return toolBar;
+    }
+
     private void setStatus(String color, String message, Object... arguments) {
-        final String htmlMessage = String.format("<html><font color=%s>%s</color></html>", color, String.format(
-                message != null ? message : "", arguments));
+        String formattedMessage = String.format(message != null ? message : "", arguments);
+        final String htmlMessage = String.format("<html><font color=%s>%s</color></html>", color, formattedMessage);
         if (SwingUtilities.isEventDispatchThread()) {
-            statusBarLabel.setText(htmlMessage);
+            statusLabel.setText(htmlMessage);
         } else {
             SwingUtilities.invokeLater(new Runnable() {
 
                 @Override
                 public void run() {
-                    statusBarLabel.setText(htmlMessage);
+                    statusLabel.setText(htmlMessage);
                 }
             });
         }

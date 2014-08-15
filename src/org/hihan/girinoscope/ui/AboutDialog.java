@@ -13,11 +13,11 @@ import java.util.Enumeration;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.swing.BorderFactory;
 import javax.swing.JDialog;
 import javax.swing.JEditorPane;
 import javax.swing.JFrame;
 import javax.swing.WindowConstants;
-import javax.swing.border.EmptyBorder;
 import javax.swing.event.HyperlinkEvent;
 import javax.swing.event.HyperlinkListener;
 import javax.swing.text.AttributeSet;
@@ -66,7 +66,7 @@ public class AboutDialog extends JDialog {
         styleSheet.addRule("body {bgcolor: white;}");
 
         JEditorPane editorPane = new JEditorPane();
-        editorPane.setBorder(new EmptyBorder(8, 8, 8, 8));
+        editorPane.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
         editorPane.setOpaque(true);
         editorPane.setEditorKit(kit);
         editorPane.setContentType("text/html");
