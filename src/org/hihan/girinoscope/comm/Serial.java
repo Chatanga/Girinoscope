@@ -34,7 +34,7 @@ public class Serial implements Closeable {
                     Pattern.compile("COM\\d+"), // Windows
     };
 
-    /** Milliseconds to block while waiting for port open */
+    /** Milliseconds to block while waiting for port open. */
     private static final int TIME_OUT = 2000;
 
     /** Default bits per second for COM port. */
@@ -45,9 +45,7 @@ public class Serial implements Closeable {
 
     private SerialPort serialPort;
 
-    /**
-     * The output stream to the port.
-     */
+    /** The output stream to the port. */
     private InputStream input;
 
     /**
@@ -107,7 +105,8 @@ public class Serial implements Closeable {
                 if (input.available() > 0 && (c = input.read()) >= 0) {
                     line.append((char) c);
                     ++length;
-                    if (length >= 2 && line.charAt(length - 2) == '\r' && line.charAt(length - 1) == '\n') {
+                    boolean eol = length >= 2 && line.charAt(length - 2) == '\r' && line.charAt(length - 1) == '\n';
+                    if (eol) {
                         line.setLength(length - 2);
                         break;
                     }

@@ -36,22 +36,6 @@ public class Girino {
             }
         }
 
-        public String getIdentifier2() {
-            String name = name();
-            StringBuilder identifier = new StringBuilder();
-            boolean uppercase = false;
-            for (int i = 0; i < name.length(); ++i) {
-                char c = name.charAt(i);
-                if (c == '_') {
-                    uppercase = true;
-                } else {
-                    identifier.append(uppercase ? Character.toUpperCase(c) : Character.toLowerCase(c));
-                    uppercase = false;
-                }
-            }
-            return identifier.toString();
-        }
-
         public String getDescription() {
             return name().charAt(0) + name().substring(1).toLowerCase().replace('_', ' ');
         }
@@ -120,6 +104,9 @@ public class Girino {
         }
     }
 
+    /** Milliseconds to wait once a new connection has been etablished. */
+    private static final int SETUP_DELAY_ON_RESET = 2000;
+
     private static final String READY_MESSAGE = "Girino ready";
 
     private static final String START_ACQUIRING_COMMAND = "s";
@@ -156,9 +143,10 @@ public class Girino {
 
                 /*
                  * Note that the USB to serial adapter is usually configured to
-                 * reset the AVR each time a connection is etablish.
+                 * reset the AVR each time a connection is etablish. The delay
+                 * here is to give some time to the controller to set itself up.
                  */
-                Thread.sleep(2000);
+                Thread.sleep(SETUP_DELAY_ON_RESET);
 
                 String data;
                 do {
@@ -202,24 +190,31 @@ public class Girino {
         }
     }
 
+    /**
+     * @throws IOException
+     *             Provided parameters shall be verified by the caller since
+     *             some parameters could have been set back to a different value
+     *             than asked.
+     */
     private void applyParameters(Map<Parameter, Integer> newParameters) throws IOException {
         for (Map.Entry<Parameter, Integer> entry : newParameters.entrySet()) {
             Parameter parameter = entry.getKey();
-            if (!same(entry.getValue(), parameters.get(parameter))) {
+            Integer newValue = entry.getValue();
+            // We only update modified parameters.
+            if (!same(newValue, parameters.get(parameter))) {
                 if (parameter.command != null) {
-                    serial.writeLine(parameter.command + entry.getValue());
+                    serial.writeLine(parameter.command + newValue);
                     String data = serial.readLine();
                     String[] items = data.split(":");
                     if (items.length > 1) {
                         String message = items[0].trim();
                         String identifier = parameter.getIdentifier();
                         if (message.equals(String.format("Setting %s to", identifier))) {
-                            int value = Integer.parseInt(items[1].trim());
-                            parameters.put(parameter, value);
-                            if (!same(entry.getValue(), parameters.get(parameter))) {
+                            int returnedValue = Integer.parseInt(items[1].trim());
+                            parameters.put(parameter, returnedValue);
+                            if (!same(newValue, parameters.get(parameter))) {
                                 throw new IOException("Change has been rejected for parameter "
-                                        + parameter.getDescription() + ": " + entry.getValue() + " =/= "
-                                        + parameters.get(parameter));
+                                        + parameter.getDescription() + ": " + newValue + " =/= " + returnedValue);
                             }
                         } else {
                             throw new IOException("Not matching returned parameter " + identifier);
@@ -242,10 +237,13 @@ public class Girino {
 
     public byte[] acquireData() throws Exception {
         serial.writeLine(START_ACQUIRING_COMMAND);
-        byte[] buffer = new byte[1280];
-        int size = serial.readBytes(buffer);
-        serial.writeLine(STOP_ACQUIRING_COMMAND);
-        return size == buffer.length ? buffer : null;
+        try {
+            byte[] buffer = new byte[1280];
+            int size = serial.readBytes(buffer);
+            return size == buffer.length ? buffer : null;
+        } finally {
+            serial.writeLine(STOP_ACQUIRING_COMMAND);
+        }
     }
 
     private static boolean same(Object o1, Object o2) {
