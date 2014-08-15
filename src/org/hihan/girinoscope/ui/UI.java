@@ -27,6 +27,7 @@ import java.util.logging.SimpleFormatter;
 import javax.swing.AbstractAction;
 import javax.swing.AbstractButton;
 import javax.swing.Action;
+import javax.swing.Box;
 import javax.swing.ButtonGroup;
 import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JComponent;
@@ -414,7 +415,6 @@ public class UI extends JFrame {
     private JComponent createToolBar() {
         JToolBar toolBar = new JToolBar();
         toolBar.setFloatable(false);
-        toolBar.setRollover(true);
         final Component start = toolBar.add(startAcquiringAction);
         final Component stop = toolBar.add(stopAcquiringAction);
         start.addPropertyChangeListener("enabled", new PropertyChangeListener() {
@@ -441,6 +441,7 @@ public class UI extends JFrame {
     private JComponent createStatusBar() {
         JToolBar toolBar = new JToolBar();
         toolBar.setFloatable(false);
+        toolBar.add(Box.createVerticalStrut(16));
         toolBar.add(statusLabel);
         return toolBar;
     }
