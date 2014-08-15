@@ -26,13 +26,13 @@ which can easily be solved by applying the following patch manually:
 
 *Girino.h, line 41:*
 
-	// Replace 3 by 4 since the wait duration range is [0, 1280[.
-	#define COMBUFFERSIZE   3   // Size of buffer for incoming numbers
+    // Replace 3 by 4 since the wait duration range is [0, 1280[.
+    #define COMBUFFERSIZE   3   // Size of buffer for incoming numbers
 
 *Girino.ino, line 229:*
 
-	// Replace 'uint8' by 'uint16' for the same reason.
-	uint8_t newT = atoi( commandBuffer );
+    // Replace 'uint8' by 'uint16' for the same reason.
+    uint8_t newT = atoi( commandBuffer );
 
 Unfortunately, strange behaviors will happen when using it.
 They can very well originate from the way I've built my Girino
@@ -55,6 +55,6 @@ Dependencies
 Girinoscope uses the same native library than the Arduino IDE 1.0.5 to manage serial port: the RXTX library.
 It is not necessarily the perfect solution
 and the latest Arduino IDE version (1.5.7 BETA) has droped it in favor of something more elaborate.
-Whatever, the RXTX works well enough for our purposes and, if you have already successfuly installed the Arduino IDE,
+Whatever, the RXTX works well enough for our purposes and, if you have already successfully installed the Arduino IDE,
 Girinoscope should work out of the crafting table.
 Otherwise, there is all the informations you need on the [Arduino web site](http://arduino.cc/en/Guide/HomePage).

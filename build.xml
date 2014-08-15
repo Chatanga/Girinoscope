@@ -1,50 +1,50 @@
 <?xml version="1.0"?>
 <project name="Girinoscope" default="usage" basedir=".">
 
-	<property name="target.dir" value="${basedir}/build" />
+    <property name="target.dir" value="${basedir}/build" />
 
-	<target name="clean" description="Clean the crafting table.">
-		<delete dir="${target.dir}" />
-	</target>
+    <target name="clean" description="Clean the crafting table.">
+        <delete dir="${target.dir}" />
+    </target>
 
-	<target name="build" description="Build the Girinoscope library.">
-		<mkdir dir="${target.dir}/classes" />
+    <target name="build" description="Build the Girinoscope library.">
+        <mkdir dir="${target.dir}/classes" />
 
-		<javac includeantruntime="false" srcdir="${basedir}/src" destdir="${target.dir}/classes" source="1.6" target="1.6" debug="on">
-			<classpath>
-				<fileset dir="${basedir}/lib" includes="*.jar" />
-			</classpath>
-		</javac>
+        <javac includeantruntime="false" srcdir="${basedir}/src" destdir="${target.dir}/classes" source="1.6" target="1.6" debug="on">
+            <classpath>
+                <fileset dir="${basedir}/lib" includes="*.jar" />
+            </classpath>
+        </javac>
 
-		<copy todir="${target.dir}/classes">
-			<fileset dir="${basedir}/src" excludes="*.java" />
-		</copy>
+        <copy todir="${target.dir}/classes">
+            <fileset dir="${basedir}/src" excludes="*.java" />
+        </copy>
 
-		<mkdir dir="${target.dir}/lib" />
+        <mkdir dir="${target.dir}/lib" />
 
-		<jar destfile="${target.dir}/lib/Girinoscope.jar">
-			<fileset dir="${target.dir}/classes" />
-			<manifest>
-				<attribute name="Main-Class" value="org.hihan.girinoscope.ui.UI" />
-			</manifest>
-		</jar>
-	</target>
+        <jar destfile="${target.dir}/lib/Girinoscope.jar">
+            <fileset dir="${target.dir}/classes" />
+            <manifest>
+                <attribute name="Main-Class" value="org.hihan.girinoscope.ui.UI" />
+            </manifest>
+        </jar>
+    </target>
 
-	<condition property="jvmarg" value="-d32">
-		<os family="windows" />
-	</condition>
-	<condition property="jvmarg" value="-d32">
-		<os family="mac" />
-	</condition>
-	<!-- The '-client' is just a default inoffensive option to avoid
+    <condition property="jvmarg" value="-d32">
+        <os family="windows" />
+    </condition>
+    <condition property="jvmarg" value="-d32">
+        <os family="mac" />
+    </condition>
+    <!-- The '-client' is just a default inoffensive option to avoid
     an empty value for the 'jvmarg' which turns to be a problem for Ant.
     -->
-	<condition property="jvmarg" value="-client">
-		<!-- Tested after 'mac' because a Mac is a Unix
+    <condition property="jvmarg" value="-client">
+        <!-- Tested after 'mac' because a Mac is a Unix
 		(and remember that Ant properties are immutable).
 		-->
-		<os family="unix" />
-	</condition>
+        <os family="unix" />
+    </condition>
 
     <target name="run" description="Run Girinoscope.">
         <echo message="Running on ${os.name} (${os.arch})." />
