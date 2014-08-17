@@ -10,7 +10,14 @@
     <target name="build" description="Build the Girinoscope library.">
         <mkdir dir="${target.dir}/classes" />
 
-        <javac includeantruntime="false" srcdir="${basedir}/src" destdir="${target.dir}/classes" source="1.6" target="1.6" debug="on">
+        <!--
+        The bootstrap classpath warning is bound to happen if not using
+        a JDK 1.6 or not having it located in the same folder as me.
+        -->
+        <javac srcdir="${basedir}/src" destdir="${target.dir}/classes"
+            includeantruntime="false" debug="on"
+            source="1.6" target="1.6"
+            bootclasspath="${user.home}/Applications/jdk1.6.0_45/jre/lib/rt.jar">
             <classpath>
                 <fileset dir="${basedir}/lib" includes="*.jar" />
             </classpath>
@@ -30,23 +37,25 @@
         </jar>
     </target>
 
-    <condition property="jvmarg" value="-d32">
-        <os family="windows" />
-    </condition>
-    <condition property="jvmarg" value="-d32">
-        <os family="mac" />
-    </condition>
-    <!-- The '-client' is just a default inoffensive option to avoid
-    an empty value for the 'jvmarg' which turns to be a problem for Ant.
-    -->
-    <condition property="jvmarg" value="-client">
-        <!-- Tested after 'mac' because a Mac is a Unix
-		(and remember that Ant properties are immutable).
+    <target name="set-jvmarg">
+        <!-- The '-client' is just a default inoffensive option to avoid
+		an empty value for the 'jvmarg' which turns to be a problem for Ant.
 		-->
-        <os family="unix" />
-    </condition>
+        <condition property="jvmarg" value="-client">
+            <os family="windows" />
+        </condition>
+        <condition property="jvmarg" value="-d32">
+            <os family="mac" />
+        </condition>
+        <condition property="jvmarg" value="-client">
+            <!-- Tested after 'mac' because a Mac is a Unix
+			(and remember that Ant properties are immutable).
+			-->
+            <os family="unix" />
+        </condition>
+    </target>
 
-    <target name="run" description="Run Girinoscope.">
+    <target name="run" description="Run Girinoscope." depends="set-jvmarg">
         <echo message="Running on ${os.name} (${os.arch})." />
         <java classname="org.hihan.girinoscope.ui.UI" fork="true">
             <jvmarg value="${jvmarg}" />
@@ -55,6 +64,32 @@
                 <fileset dir="${target.dir}/lib" includes="*.jar" />
             </classpath>
         </java>
+    </target>
+
+    <target name="dist" description="Build Girinoscope distribution." depends="clean, build">
+        <tstamp>
+            <format property="build.number" pattern="yyyyddMMhhmm" timezone="UTC" />
+        </tstamp>
+        <property name="app.dir" value="Girinoscope-ALPHA-${build.number}" />
+        <zip destfile="${target.dir}/dist/${app.dir}.zip">
+            <zipfileset dir="${basedir}" prefix="${app.dir}">
+                <include name="lib/*.jar" />
+            </zipfileset>
+            <zipfileset dir="${basedir}/build" prefix="${app.dir}">
+                <include name="lib/*.jar" />
+            </zipfileset>
+            <zipfileset dir="${basedir}/native" prefix="${app.dir}">
+                <include name="linux/**/*" />
+                <include name="macosx/**/*" />
+                <include name="windows/**/*" />
+            </zipfileset>
+            <zipfileset dir="${basedir}/native" prefix="${app.dir}" filemode="755">
+                <include name="girinoscope" />
+            </zipfileset>
+            <zipfileset dir="${basedir}/native" prefix="${app.dir}">
+                <include name="girinoscope.bat" />
+            </zipfileset>
+        </zip>
     </target>
 
     <target name="usage" description="Display usage.">
