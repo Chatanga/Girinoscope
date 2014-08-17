@@ -53,8 +53,7 @@ The screen captures in the `doc` folder show some cases of such missing data
 Install
 -------
 
-Just unarchive [Girinoscope-ALPHA-201417081120.zip](Girinoscope-ALPHA-201417081120.zip) somewhere
-and launch the application using the appropriate script at the root
+Just unzip the latest release somewhere and launch the application using the appropriate script at the root
 (`girino` for Linux / Mac and `girino.bat` for Windows).
 Of course, since this is a Java application, you need a [JRE 1.6 or higher](https://www.java.com/fr)
 installed on your system (64 bits is currently only supported for the Linux version).
