@@ -16,6 +16,19 @@ import java.util.regex.Pattern;
 
 import org.hihan.girinoscope.Native;
 
+/**
+ * Reading operations are semi-interruptible here. As long as nothing as been
+ * read, it can be interrupted, but once something has been read, it continues
+ * up to the line / buffer completion. This behavior is here to avoid to stop
+ * reading a bunch of data sent by the Girino. It do it fast enough not to
+ * bother us. The only delay we want to interrupt is when nothing is coming, per
+ * instance when we wait for the trigger to happen. A crossover can still occur
+ * - the trigger happening the same time the user cancel the operation - but it
+ * is not likely to happen and the Girino doesn’t support a complex enough
+ * protocol to prevent this kind of problem anyway. On the other hand, the
+ * consequence is not fatal. We will read garbage the next time, display some
+ * error to the user and move along.
+ */
 public class Serial implements Closeable {
 
     private static final Logger logger = Logger.getLogger(Serial.class.getName());
@@ -102,7 +115,7 @@ public class Serial implements Closeable {
         try {
             while (true) {
                 int c;
-                if (input.available() > 0 && (c = input.read()) >= 0) {
+                if ((input.available() > 0 || line.length() > 0) && (c = input.read()) >= 0) {
                     line.append((char) c);
                     ++length;
                     boolean eol = length >= 2 && line.charAt(length - 2) == '\r' && line.charAt(length - 1) == '\n';
@@ -112,8 +125,8 @@ public class Serial implements Closeable {
                     }
                 } else {
                     /*
-                     * Sleeping here allows us to be interrupted (the serial is
-                     * not by itself).
+                     * Sleeping here allows us to be interrupted (the serial
+                     * input is not interruptible itself).
                      */
                     Thread.sleep(READ_DELAY);
                 }
@@ -130,7 +143,7 @@ public class Serial implements Closeable {
         int offset = 0;
         try {
             while (offset < buffer.length) {
-                if (input.available() > 0) {
+                if (input.available() > 0 || offset > 0) {
                     int size = input.read(buffer, offset, buffer.length - offset);
                     if (size < 0) {
                         break;
@@ -138,8 +151,8 @@ public class Serial implements Closeable {
                     offset += size;
                 } else {
                     /*
-                     * Sleeping here allows us to be interrupted (the serial is
-                     * not by itself).
+                     * Sleeping here allows us to be interrupted (the serial
+                     * input is not interruptible itself).
                      */
                     Thread.sleep(READ_DELAY);
                 }

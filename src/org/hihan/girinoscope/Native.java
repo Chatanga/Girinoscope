@@ -39,7 +39,13 @@ public class Native {
         if (os != null) {
             boolean is64bits = "64".equals(System.getProperty("sun.arch.data.model").toLowerCase());
 
-            File libPath = new File("native");
+            String nativePath = System.getProperty("girino.native.path");
+            if (nativePath == null) {
+                nativePath = "native";
+            }
+            logger.log(Level.INFO, "Native path is '{0}'.",nativePath);
+
+            File libPath = new File(nativePath);
             libPath = new File(libPath, os.name().toLowerCase());
             libPath = new File(libPath, is64bits ? "lib64" : "lib");
 
@@ -64,7 +70,7 @@ public class Native {
         }
     }
 
-    public static void setLookAndFeel() {
+    public static void setBestLookAndFeel() {
         String osName = System.getProperty("os.name");
         OS os = OS.resolve(osName);
         try {
@@ -78,9 +84,10 @@ public class Native {
                     quaquaAvailable = false;
                 }
                 if (quaquaAvailable) {
-                    // set system properties here that affect Quaqua
-                    // for example the default layout policy for tabbed
-                    // panes:
+                    /*
+                     * set system properties here that affect Quaqua for example
+                     * the default layout policy for tabbed panes.
+                     */
                     System.setProperty("Quaqua.tabLayoutPolicy", "wrap");
                     try {
                         UIManager.setLookAndFeel(quaquaLaf);
@@ -91,7 +98,16 @@ public class Native {
                 }
             }
             if (!lafSet) {
-                UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+                /*
+                 * The GTK+ would probably be the system LaF in Linux, which is
+                 * not necessarily a good idea considering how is broken (in our
+                 * case: menu without shadows and with unreadable highlighting).
+                 */
+                if (os == OS.Linux) {
+                    UIManager.setLookAndFeel("javax.swing.plaf.nimbus.NimbusLookAndFeel");
+                } else {
+                    UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+                }
             }
         } catch (Exception e) {
             logger.log(Level.WARNING, "Failed to load the sysem LaF.", e);

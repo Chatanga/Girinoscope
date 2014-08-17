@@ -8,7 +8,8 @@ import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
 
 /**
- * Icons found in my /usr/icons/Mint-X/actions/16 folders.
+ * For the records, all the icons in this package have been found in my
+ * '/usr/icons/Mint-X/actions/16' folders.
  */
 public class Icon {
 

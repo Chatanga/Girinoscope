@@ -3,6 +3,7 @@ package org.hihan.girinoscope.comm;
 import gnu.io.CommPortIdentifier;
 
 import java.io.IOException;
+import java.util.AbstractMap;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -20,8 +21,7 @@ public class Girino {
         THRESHOLD("t", true);
 
         private String command;
-
-        public boolean readable;
+        private boolean readable;
 
         Parameter(String command, boolean readable) {
             this.command = command;
@@ -48,6 +48,39 @@ public class Girino {
             }
             return null;
         }
+
+        private static Map.Entry<Parameter, Integer> read(Serial serial) throws IOException {
+            String data = serial.readLine();
+            if (READY_MESSAGE.equals(data)) {
+                data = serial.readLine();
+            }
+            String[] items = data.split(":");
+            String name = items[0].trim();
+            int value = Integer.parseInt(items[1].trim());
+            Parameter parameter = Parameter.findByDescription(name);
+            return new AbstractMap.SimpleEntry<Parameter, Integer>(parameter, value);
+        }
+
+        private int apply(Serial serial, int newValue) throws IOException {
+            if (command != null) {
+                serial.writeLine(command + newValue);
+                String data = serial.readLine();
+                String[] items = data.split(":");
+                if (items.length > 1) {
+                    String message = items[0].trim();
+                    String identifier = getIdentifier();
+                    if (message.equals(String.format("Setting %s to", identifier))) {
+                        return Integer.parseInt(items[1].trim());
+                    } else {
+                        throw new IOException("Not matching returned parameter " + identifier);
+                    }
+                } else {
+                    throw new IOException("Unknown parameter " + getDescription());
+                }
+            } else {
+                throw new IllegalArgumentException("Read only parameter " + getDescription());
+            }
+        }
     }
 
     public static class PrescalerInfo {
@@ -56,13 +89,16 @@ public class Girino {
         public final double frequency;
         public final double timeframe;
         public final String description;
+        public final boolean tooFast;
 
         private PrescalerInfo(int n) {
             value = (int) Math.pow(2, n);
-            frequency = 625.0 / value;
+            double baseFrequency = 16 * 1000 * 1000;
+            double clockCycleCountPerConversion = 13;
+            frequency = baseFrequency / value / clockCycleCountPerConversion;
             timeframe = 1280 / frequency;
-            String warning = n < 5 ? " (Not working at home, too high?)" : "";
-            description = String.format("%.0f kHz / %.0f ms%s", frequency, timeframe, warning);
+            tooFast = n < 5;
+            description = String.format("%.0f kHz / %.0f ms", frequency / 1000, timeframe * 1000);
         }
 
         public static List<PrescalerInfo> values() {
@@ -133,27 +169,31 @@ public class Girino {
 
     private void connect(CommPortIdentifier newPortId) throws Exception {
         if (newPortId != null) {
-            if (!same(portId, newPortId)) {
+            if (serial == null || !same(portId, newPortId)) {
                 portId = newPortId;
                 if (serial != null) {
                     disconnect();
                 }
 
                 serial = new Serial(portId);
+                try {
+                    /*
+                     * Note that the USB to serial adapter is usually configured
+                     * to reset the AVR each time a connection is etablish. The
+                     * delay here is to give some time to the controller to set
+                     * itself up.
+                     */
+                    Thread.sleep(SETUP_DELAY_ON_RESET);
 
-                /*
-                 * Note that the USB to serial adapter is usually configured to
-                 * reset the AVR each time a connection is etablish. The delay
-                 * here is to give some time to the controller to set itself up.
-                 */
-                Thread.sleep(SETUP_DELAY_ON_RESET);
+                    String data;
+                    do {
+                        data = serial.readLine();
+                    } while (!data.endsWith(READY_MESSAGE));
 
-                String data;
-                do {
-                    data = serial.readLine();
-                } while (!data.endsWith(READY_MESSAGE));
-
-                readParameters();
+                    readParameters();
+                } catch (InterruptedException e) {
+                    disconnect();
+                }
             }
         } else {
             throw new IllegalArgumentException("No serial port");
@@ -168,24 +208,18 @@ public class Girino {
     }
 
     private void readParameters() throws IOException {
-        serial.writeLine(DUMP_COMMAND);
         int readableParameterCount = 0;
         for (Parameter parameter : Parameter.values()) {
             if (parameter.readable) {
                 ++readableParameterCount;
             }
         }
+
+        serial.writeLine(DUMP_COMMAND);
         for (int i = 0; i < readableParameterCount; ++i) {
-            String data = serial.readLine();
-            if (READY_MESSAGE.equals(data)) {
-                data = serial.readLine();
-            }
-            String[] items = data.split(":");
-            String name = items[0].trim();
-            int value = Integer.parseInt(items[1].trim());
-            Parameter parameter = Parameter.findByDescription(name);
-            if (parameter != null) {
-                parameters.put(parameter, value);
+            Map.Entry<Parameter, Integer> entry = Parameter.read(serial);
+            if (entry.getKey() != null) {
+                parameters.put(entry.getKey(), entry.getValue());
             }
         }
     }
@@ -200,30 +234,14 @@ public class Girino {
         for (Map.Entry<Parameter, Integer> entry : newParameters.entrySet()) {
             Parameter parameter = entry.getKey();
             Integer newValue = entry.getValue();
+
             // We only update modified parameters.
             if (!same(newValue, parameters.get(parameter))) {
-                if (parameter.command != null) {
-                    serial.writeLine(parameter.command + newValue);
-                    String data = serial.readLine();
-                    String[] items = data.split(":");
-                    if (items.length > 1) {
-                        String message = items[0].trim();
-                        String identifier = parameter.getIdentifier();
-                        if (message.equals(String.format("Setting %s to", identifier))) {
-                            int returnedValue = Integer.parseInt(items[1].trim());
-                            parameters.put(parameter, returnedValue);
-                            if (!same(newValue, parameters.get(parameter))) {
-                                throw new IOException("Change has been rejected for parameter "
-                                        + parameter.getDescription() + ": " + newValue + " =/= " + returnedValue);
-                            }
-                        } else {
-                            throw new IOException("Not matching returned parameter " + identifier);
-                        }
-                    } else {
-                        throw new IOException("Unknown parameter " + parameter.getDescription());
-                    }
-                } else {
-                    throw new IllegalArgumentException("Read only parameter " + parameter.getDescription());
+                int returnedValue = parameter.apply(serial, newValue);
+                parameters.put(parameter, returnedValue);
+                if (!same(newValue, parameters.get(parameter))) {
+                    throw new IOException("Change has been rejected for parameter " + parameter.getDescription() + ": "
+                            + newValue + " =/= " + returnedValue);
                 }
             }
         }
@@ -232,16 +250,28 @@ public class Girino {
     public void etablishConnection(final CommPortIdentifier newPortId, final Map<Parameter, Integer> newParameters)
             throws Exception {
         connect(newPortId);
-        applyParameters(newParameters);
+        if (serial != null) {
+            applyParameters(newParameters);
+        }
     }
 
     public byte[] acquireData() throws Exception {
         serial.writeLine(START_ACQUIRING_COMMAND);
+        /*
+         * Note that the Girino reset its buffer (with zeros), meaning we won’t
+         * catch a lot of the signal before the trigger if it happens too fast.
+         */
         try {
             byte[] buffer = new byte[1280];
             int size = serial.readBytes(buffer);
             return size == buffer.length ? buffer : null;
         } finally {
+            /*
+             * We can only acquire a single buffer and need to stop / start to
+             * get the next one. That’s how the Girino code works, but it was
+             * probably a bit different during its development. In practise,
+             * this 'stop' is only required when we cancel a trigger waiting.
+             */
             serial.writeLine(STOP_ACQUIRING_COMMAND);
         }
     }

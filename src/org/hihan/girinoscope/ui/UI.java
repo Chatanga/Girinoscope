@@ -3,6 +3,7 @@ package org.hihan.girinoscope.ui;
 import gnu.io.CommPortIdentifier;
 
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
@@ -27,12 +28,10 @@ import java.util.logging.SimpleFormatter;
 import javax.swing.AbstractAction;
 import javax.swing.AbstractButton;
 import javax.swing.Action;
-import javax.swing.Box;
 import javax.swing.ButtonGroup;
 import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
-import javax.swing.JLabel;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JToolBar;
@@ -67,7 +66,7 @@ public class UI extends JFrame {
 
         SwingUtilities.invokeAndWait(new Runnable() {
             public void run() {
-                Native.setLookAndFeel();
+                Native.setBestLookAndFeel();
                 JFrame frame = new UI();
                 frame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
                 frame.pack();
@@ -85,7 +84,7 @@ public class UI extends JFrame {
 
     private GraphPane graphPane;
 
-    private JLabel statusLabel = new JLabel();
+    private StatusBar statusBar;
 
     private DataAcquisitionTask currentDataAcquisitionTask;
 
@@ -132,6 +131,11 @@ public class UI extends JFrame {
                     connection.cancel(true);
                 }
 
+                /*
+                 * Parameter changes are not taken into account during a buffer
+                 * acquisition. The user can still stop and restart it manually
+                 * to force the update.
+                 */
                 setStatus("blue", "Acquiring data from %s...", frozenPortId.getName());
                 byte[] buffer = girino.acquireData();
                 if (buffer != null) {
@@ -224,8 +228,11 @@ public class UI extends JFrame {
         add(graphPane, BorderLayout.CENTER);
 
         setJMenuBar(createMenuBar());
+
         add(createToolBar(), BorderLayout.NORTH);
-        add(createStatusBar(), BorderLayout.SOUTH);
+
+        statusBar = new StatusBar();
+        add(statusBar, BorderLayout.SOUTH);
 
         stopAcquiringAction.setEnabled(false);
 
@@ -307,12 +314,15 @@ public class UI extends JFrame {
                     synchronized (UI.this) {
                         parameters.put(Parameter.PRESCALER, info.value);
                     }
-                    Axis xAxis = new Axis(0, info.timeframe, "%.0f ms", 7);
+                    Axis xAxis = new Axis(0, info.timeframe * 1000, "%.0f ms", 7);
                     Axis yAxis = new Axis(-2.5, 2.5, "%.2f V", 5);
                     graphPane.setCoordinateSystem(xAxis, yAxis);
                 }
             };
             AbstractButton button = new JCheckBoxMenuItem(setPrescaler);
+            if (info.tooFast) {
+                button.setForeground(Color.RED);
+            }
             if (info.value == parameters.get(Parameter.PRESCALER)) {
                 button.doClick();
             }
@@ -438,25 +448,17 @@ public class UI extends JFrame {
         return toolBar;
     }
 
-    private JComponent createStatusBar() {
-        JToolBar toolBar = new JToolBar();
-        toolBar.setFloatable(false);
-        toolBar.add(Box.createVerticalStrut(16));
-        toolBar.add(statusLabel);
-        return toolBar;
-    }
-
     private void setStatus(String color, String message, Object... arguments) {
         String formattedMessage = String.format(message != null ? message : "", arguments);
         final String htmlMessage = String.format("<html><font color=%s>%s</color></html>", color, formattedMessage);
         if (SwingUtilities.isEventDispatchThread()) {
-            statusLabel.setText(htmlMessage);
+            statusBar.setText(htmlMessage);
         } else {
             SwingUtilities.invokeLater(new Runnable() {
 
                 @Override
                 public void run() {
-                    statusLabel.setText(htmlMessage);
+                    statusBar.setText(htmlMessage);
                 }
             });
         }
