@@ -39,11 +39,11 @@ public class Native {
         if (os != null) {
             boolean is64bits = "64".equals(System.getProperty("sun.arch.data.model").toLowerCase());
 
-            String nativePath = System.getProperty("girino.native.path");
+            String nativePath = System.getProperty("girinoscope.native.path");
             if (nativePath == null) {
                 nativePath = "native";
             }
-            logger.log(Level.INFO, "Native path is '{0}'.",nativePath);
+            logger.log(Level.INFO, "Native path is '{0}'.", nativePath);
 
             File libPath = new File(nativePath);
             libPath = new File(libPath, os.name().toLowerCase());
