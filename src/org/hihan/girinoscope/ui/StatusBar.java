@@ -32,7 +32,7 @@ public class StatusBar extends JToolBar {
         /*
          * On other LaF, notably Nimbus, toolbar painting take the component
          * location into account (North or South in our case). It is not the
-         * case with the GTK+ which need our help here.
+         * case with the GTK+ LaF which need our help here.
          */
         mirrored = "com.sun.java.swing.plaf.gtk.GTKLookAndFeel".equals(laf);
         super.paintComponent(mirrored ? createVerticalMirrorGraphics(g) : g);
