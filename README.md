@@ -18,7 +18,7 @@ the various settings provided by Girinoscope are not detailled here.
 If you have already built your own Girino and studied the firmware,
 you should already be familiar with them.
 
-**Warning**
+**Wait duration parameter**
 
 The Arduino code provided in the [Girino Instructable]
 (http://www.instructables.com/id/Girino-Fast-Arduino-Oscilloscope/)
@@ -49,6 +49,16 @@ If this trigger occurs too early, you will not see much from the past.
 In fact, since Girino resets its data buffer on each acquisition, you will mostly get zeros.
 The screen captures in the `doc` folder show some cases of such missing data
 (since the observed signals are periodic, Girino can’t catch more than a period before a trigger occurs).
+
+**Prescaler parameter**
+
+The prescaler parameter also suffers some limitations signaled by the UI using the following colors:
+- black if it should work without problem,
+- orange if it won’t work without optimizing the Girino code,
+- red if it won’t work at all (at least, it never did at home).
+
+The code optimization consists in applying the [advices](doc/girino_optimization.md) given by [womai](http://www.instructables.com/member/womai/)
+in the [Girino Instructable] (http://www.instructables.com/id/Girino-Fast-Arduino-Oscilloscope/).
 
 Install
 -------
