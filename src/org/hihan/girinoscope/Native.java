@@ -6,6 +6,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.swing.UIManager;
+import javax.swing.UnsupportedLookAndFeelException;
 
 public class Native {
 
@@ -73,44 +74,55 @@ public class Native {
     public static void setBestLookAndFeel() {
         String osName = System.getProperty("os.name");
         OS os = OS.resolve(osName);
+
+        boolean lafSet = false;
         try {
-            boolean lafSet = false;
+            /*
+             * Could work on other platform actually, but not intended to.
+             */
             if (os == OS.MacOSX) {
-                String quaquaLaf = "ch.randelshofer.quaqua.QuaquaLookAndFeel";
-                boolean quaquaAvailable;
-                try {
-                    quaquaAvailable = Native.class.getClassLoader().loadClass(quaquaLaf) != null;
-                } catch (ClassNotFoundException e) {
-                    quaquaAvailable = false;
-                }
-                if (quaquaAvailable) {
-                    /*
-                     * set system properties here that affect Quaqua for example
-                     * the default layout policy for tabbed panes.
-                     */
-                    System.setProperty("Quaqua.tabLayoutPolicy", "wrap");
-                    try {
-                        UIManager.setLookAndFeel(quaquaLaf);
-                        lafSet = true;
-                    } catch (Exception e) {
-                        lafSet = false;
-                    }
-                }
-            }
-            if (!lafSet) {
                 /*
-                 * The GTK+ would probably be the system LaF in Linux, which is
-                 * not necessarily a good idea considering how is broken (in our
-                 * case: menu without shadows and with unreadable highlighting).
+                 * set system properties here that affect Quaqua for example the
+                 * default layout policy for tabbed panes.
                  */
-                if (os == OS.Linux) {
-                    UIManager.setLookAndFeel("javax.swing.plaf.nimbus.NimbusLookAndFeel");
-                } else {
-                    UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+                System.setProperty("Quaqua.tabLayoutPolicy", "wrap");
+                lafSet = setLookAndFeelIfAvailable("ch.randelshofer.quaqua.QuaquaLookAndFeel");
+            }
+            /*
+             * The GTK+ would probably be the system LaF in Linux, which is not
+             * necessarily a good idea considering how is broken (in our case:
+             * menu without shadows and with unreadable highlighting).
+             */
+            else if (os == OS.Linux) {
+                lafSet = setLookAndFeelIfAvailable("javax.swing.plaf.nimbus.NimbusLookAndFeel");
+                if (!lafSet) {
+                    lafSet = setLookAndFeelIfAvailable("com.sun.java.swing.plaf.nimbus.NimbusLookAndFeel");
                 }
             }
         } catch (Exception e) {
-            logger.log(Level.WARNING, "Failed to load the sysem LaF.", e);
+            logger.log(Level.WARNING, "Failed to load the best LaF.", e);
+        }
+
+        if (!lafSet) {
+            try {
+                UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+            } catch (Exception e) {
+                logger.log(Level.WARNING, "Failed to load the system LaF.", e);
+            }
+        }
+    }
+
+    private static boolean setLookAndFeelIfAvailable(String className) throws InstantiationException,
+            IllegalAccessException, UnsupportedLookAndFeelException {
+        try {
+            if (Native.class.getClassLoader().loadClass(className) != null) {
+                UIManager.setLookAndFeel(className);
+                return true;
+            } else {
+                return false;
+            }
+        } catch (ClassNotFoundException e) {
+            return false;
         }
     }
 }

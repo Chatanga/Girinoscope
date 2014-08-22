@@ -320,8 +320,10 @@ public class UI extends JFrame {
                 }
             };
             AbstractButton button = new JCheckBoxMenuItem(setPrescaler);
-            if (info.tooFast) {
-                button.setForeground(Color.RED);
+            if (info.reallyTooFast) {
+                button.setForeground(Color.RED.darker());
+            } else if (info.tooFast) {
+                button.setForeground(Color.ORANGE.darker());
             }
             if (info.value == parameters.get(Parameter.PRESCALER)) {
                 button.doClick();
@@ -388,6 +390,7 @@ public class UI extends JFrame {
                 public void actionPerformed(ActionEvent event) {
                     try {
                         UIManager.setLookAndFeel(info.getClassName());
+                        System.err.println(info.getClassName());
                         SwingUtilities.updateComponentTreeUI(getRootPane());
                     } catch (Exception e) {
                         setStatus("red", "Failed to load {} LaF.", info.getName());

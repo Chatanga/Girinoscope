@@ -90,6 +90,7 @@ public class Girino {
         public final double timeframe;
         public final String description;
         public final boolean tooFast;
+        public final boolean reallyTooFast;
 
         private PrescalerInfo(int n) {
             value = (int) Math.pow(2, n);
@@ -98,6 +99,7 @@ public class Girino {
             frequency = baseFrequency / value / clockCycleCountPerConversion;
             timeframe = 1280 / frequency;
             tooFast = n < 5;
+            reallyTooFast = n < 3;
             description = String.format("%.0f kHz / %.0f ms", frequency / 1000, timeframe * 1000);
         }
 
