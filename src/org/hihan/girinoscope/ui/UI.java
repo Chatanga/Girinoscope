@@ -28,7 +28,6 @@ import java.util.logging.SimpleFormatter;
 import javax.swing.AbstractAction;
 import javax.swing.AbstractButton;
 import javax.swing.Action;
-import javax.swing.BorderFactory;
 import javax.swing.ButtonGroup;
 import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JComponent;
@@ -291,8 +290,8 @@ public class UI extends JFrame {
         fileMenu.add(exitAction);
         menuBar.add(fileMenu);
 
-        JMenu toolMenu = patchMenu(new JMenu("Tools"));
-        toolMenu.add(patchMenu(createSerialMenu()));
+        JMenu toolMenu = new JMenu("Tools");
+        toolMenu.add(createSerialMenu());
         toolMenu.add(createPrescalerMenu());
         toolMenu.add(createTriggerEventMenu());
         toolMenu.add(createVoltageReferenceMenu());
@@ -306,14 +305,6 @@ public class UI extends JFrame {
         menuBar.add(helpMenu);
 
         return menuBar;
-    }
-
-    private JMenu patchMenu(JMenu menu) {
-        if (UIManager.getLookAndFeel().getClass().getName().equals("com.sun.java.swing.plaf.gtk.GTKLookAndFeel")) {
-            menu.setBorder(BorderFactory.createMatteBorder(1, 1, 1, 1, Color.gray));
-        }
-        menu.setBorder(BorderFactory.createMatteBorder(1, 1, 1, 1, Color.gray));
-        return menu;
     }
 
     private JMenu createSerialMenu() {
