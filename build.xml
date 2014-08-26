@@ -70,7 +70,7 @@
         <tstamp>
             <format property="build.number" pattern="yyyyddMMhhmm" timezone="UTC" />
         </tstamp>
-        <property name="app.dir" value="Girinoscope-v1.0.1-beta-${build.number}" />
+        <property name="app.dir" value="Girinoscope-v1.1.0-beta-${build.number}" />
         <zip destfile="${target.dir}/dist/${app.dir}.zip">
             <zipfileset dir="${basedir}" prefix="${app.dir}">
                 <include name="lib/*.jar" />
