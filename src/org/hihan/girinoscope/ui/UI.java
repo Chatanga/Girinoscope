@@ -28,6 +28,7 @@ import java.util.logging.SimpleFormatter;
 import javax.swing.AbstractAction;
 import javax.swing.AbstractButton;
 import javax.swing.Action;
+import javax.swing.BorderFactory;
 import javax.swing.ButtonGroup;
 import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JComponent;
@@ -101,10 +102,6 @@ public class UI extends JFrame {
             stopAcquiringAction.setEnabled(true);
         }
 
-        public void stop() {
-            cancel(true);
-        }
-
         @Override
         protected Void doInBackground() throws Exception {
             while (!isCancelled()) {
@@ -119,7 +116,7 @@ public class UI extends JFrame {
 
                     @Override
                     public Void call() throws Exception {
-                        girino.etablishConnection(frozenPortId, frozenParameters);
+                        girino.setConnection(frozenPortId, frozenParameters);
                         return null;
                     }
                 });
@@ -127,22 +124,55 @@ public class UI extends JFrame {
                     connection.get(5, TimeUnit.SECONDS);
                 } catch (TimeoutException e) {
                     throw new TimeoutException("No Girino detected on " + frozenPortId.getName());
-                } finally {
+                } catch (InterruptedException e) {
                     connection.cancel(true);
+                    throw e;
                 }
 
-                /*
-                 * Parameter changes are not taken into account during a buffer
-                 * acquisition. The user can still stop and restart it manually
-                 * to force the update.
-                 */
                 setStatus("blue", "Acquiring data from %s...", frozenPortId.getName());
-                byte[] buffer = girino.acquireData();
-                if (buffer != null) {
-                    publish(buffer);
-                } else {
-                    break;
-                }
+                Callable<byte[]> acquisitionTask = new Callable<byte[]>() {
+
+                    @Override
+                    public byte[] call() throws Exception {
+                        return girino.acquireData();
+                    }
+                };
+                Future<byte[]> acquisition = null;
+                boolean terminated;
+                do {
+                    boolean updateConnection;
+                    synchronized (UI.this) {
+                        parameters.put(Parameter.THRESHOLD, graphPane.getThreshold());
+                        parameters.put(Parameter.WAIT_DURATION, graphPane.getWaitDuration());
+                        updateConnection = !getChanges(frozenParameters).isEmpty() || frozenPortId != portId;
+                    }
+                    if (updateConnection) {
+                        if (acquisition != null) {
+                            acquisition.cancel(true);
+                        }
+                        terminated = true;
+                    } else {
+                        try {
+                            if (acquisition == null) {
+                                acquisition = executor.submit(acquisitionTask);
+                            }
+                            byte[] buffer = acquisition.get(1, TimeUnit.SECONDS);
+                            if (buffer != null) {
+                                publish(buffer);
+                                acquisition = null;
+                                terminated = false;
+                            } else {
+                                terminated = true;
+                            }
+                        } catch (TimeoutException e) {
+                            // Just to wake up regularly.
+                            terminated = false;
+                        } catch (InterruptedException e) {
+                            acquisition.cancel(true);
+                            throw e;
+                        }
+                    }
+                } while (!terminated && !isCancelled());
             }
             return null;
         }
@@ -151,10 +181,6 @@ public class UI extends JFrame {
         protected void process(List<byte[]> buffer) {
             logger.log(Level.FINE, "{0} data buffer(s) to display.", buffer.size());
             graphPane.setData(buffer.get(buffer.size() - 1));
-            synchronized (UI.this) {
-                parameters.put(Parameter.THRESHOLD, graphPane.getThreshold());
-                parameters.put(Parameter.WAIT_DURATION, graphPane.getWaitDuration());
-            }
         }
 
         @Override
@@ -197,7 +223,7 @@ public class UI extends JFrame {
 
         @Override
         public void actionPerformed(ActionEvent event) {
-            currentDataAcquisitionTask.stop();
+            currentDataAcquisitionTask.cancel(true);
         }
     };
 
@@ -248,7 +274,7 @@ public class UI extends JFrame {
     public void dispose() {
         try {
             if (currentDataAcquisitionTask != null) {
-                currentDataAcquisitionTask.stop();
+                currentDataAcquisitionTask.cancel(true);
             }
             executor.shutdown();
             girino.disconnect();
@@ -265,8 +291,8 @@ public class UI extends JFrame {
         fileMenu.add(exitAction);
         menuBar.add(fileMenu);
 
-        JMenu toolMenu = new JMenu("Tools");
-        toolMenu.add(createSerialMenu());
+        JMenu toolMenu = patchMenu(new JMenu("Tools"));
+        toolMenu.add(patchMenu(createSerialMenu()));
         toolMenu.add(createPrescalerMenu());
         toolMenu.add(createTriggerEventMenu());
         toolMenu.add(createVoltageReferenceMenu());
@@ -280,6 +306,14 @@ public class UI extends JFrame {
         menuBar.add(helpMenu);
 
         return menuBar;
+    }
+
+    private JMenu patchMenu(JMenu menu) {
+        if (UIManager.getLookAndFeel().getClass().getName().equals("com.sun.java.swing.plaf.gtk.GTKLookAndFeel")) {
+            menu.setBorder(BorderFactory.createMatteBorder(1, 1, 1, 1, Color.gray));
+        }
+        menu.setBorder(BorderFactory.createMatteBorder(1, 1, 1, 1, Color.gray));
+        return menu;
     }
 
     private JMenu createSerialMenu() {
@@ -391,7 +425,6 @@ public class UI extends JFrame {
                 public void actionPerformed(ActionEvent event) {
                     try {
                         UIManager.setLookAndFeel(info.getClassName());
-                        System.err.println(info.getClassName());
                         SwingUtilities.updateComponentTreeUI(getRootPane());
                     } catch (Exception e) {
                         setStatus("red", "Failed to load {} LaF.", info.getName());
@@ -465,6 +498,34 @@ public class UI extends JFrame {
                     statusBar.setText(htmlMessage);
                 }
             });
+        }
+    }
+
+    private Map<Parameter, Integer> getChanges(Map<Parameter, Integer> oldParameters) {
+        Map<Parameter, Integer> changes = new HashMap<Parameter, Integer>();
+        for (Map.Entry<Parameter, Integer> entry : parameters.entrySet()) {
+            Parameter parameter = entry.getKey();
+            Integer newValue = entry.getValue();
+            if (!same(newValue, oldParameters.get(parameter))) {
+                changes.put(parameter, newValue);
+            }
+        }
+        for (Map.Entry<Parameter, Integer> entry : oldParameters.entrySet()) {
+            Parameter parameter = entry.getKey();
+            if (!parameters.containsKey(parameter)) {
+                changes.put(parameter, null);
+            }
+        }
+        return changes;
+    }
+
+    private static boolean same(Object o1, Object o2) {
+        if (o1 == o2) {
+            return true;
+        } else if (o1 == null || o2 == null) {
+            return false;
+        } else {
+            return o1.equals(o2);
         }
     }
 }

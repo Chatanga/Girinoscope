@@ -254,7 +254,7 @@ public class Girino {
         }
     }
 
-    public void etablishConnection(final CommPortIdentifier newPortId, final Map<Parameter, Integer> newParameters)
+    public void setConnection(final CommPortIdentifier newPortId, final Map<Parameter, Integer> newParameters)
             throws Exception {
         connect(newPortId);
         if (serial != null) {
