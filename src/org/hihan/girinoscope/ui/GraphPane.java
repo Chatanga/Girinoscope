@@ -196,7 +196,7 @@ public class GraphPane extends JPanel {
         GraphLabel[] xLabels = xAxis.graphLabels();
         for (int i = 0; i < xLabels.length; ++i) {
             GraphLabel xLabel = xLabels[i];
-            int xOffset = i * graphArea.width / (xLabels.length - 1);
+            int xOffset = (int) (i * graphArea.width / xAxis.getFraction());
 
             Stroke defaultStroke = g.getStroke();
 
@@ -210,14 +210,14 @@ public class GraphPane extends JPanel {
             int dx;
             if (i == 0) {
                 dx = 0;
-            } else if (i + 1 == xLabels.length) {
-                dx = -bounds.width;
             } else {
                 dx = -bounds.width / 2;
             }
             int dy = labelInsets.top;
             g.drawString(xLabel.getLabel(), xOffset + dx, graphArea.height + bounds.height + dy);
         }
+        g.drawLine(graphArea.width, 0, graphArea.width, graphArea.height);
+
         g.translate(-graphArea.x, -graphArea.y);
     }
 
@@ -226,7 +226,7 @@ public class GraphPane extends JPanel {
         GraphLabel[] yLabels = yAxis.graphLabels();
         for (int i = 0; i < yLabels.length; ++i) {
             GraphLabel yLabel = yLabels[yLabels.length - i - 1];
-            int yOffset = i * graphArea.height / (yLabels.length - 1);
+            int yOffset = (int) (i * graphArea.height / yAxis.getFraction());
 
             Stroke defaultStroke = g.getStroke();
 
@@ -237,17 +237,11 @@ public class GraphPane extends JPanel {
             g.setStroke(defaultStroke);
             g.setColor(TEXT_COLOR);
             Rectangle bounds = yLabel.getBounds();
-            int dy;
-            if (i == 0) {
-                dy = bounds.height;
-            } else if (i + 1 == yLabels.length) {
-                dy = 0;
-            } else {
-                dy = bounds.height / 2;
-            }
+            int dy = bounds.height / 2;
             int dx = labelInsets.left;
             g.drawString(yLabel.getLabel(), graphArea.width + dx, yOffset + dy);
         }
+        g.drawLine(0, graphArea.height, graphArea.width, graphArea.height);
         g.translate(-graphArea.x, -graphArea.y);
     }
 

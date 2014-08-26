@@ -314,8 +314,9 @@ public class UI extends JFrame {
                     synchronized (UI.this) {
                         parameters.put(Parameter.PRESCALER, info.value);
                     }
-                    Axis xAxis = new Axis(0, info.timeframe * 1000, "%.0f ms", 7);
-                    Axis yAxis = new Axis(-2.5, 2.5, "%.2f V", 5);
+                    String xFormat = info.timeframe > 0.005 ? "%.0f ms" : "%.1f ms";
+                    Axis xAxis = new Axis(0, info.timeframe * 1000, xFormat);
+                    Axis yAxis = new Axis(-2.5, 2.5, 0.5, "%.2f V");
                     graphPane.setCoordinateSystem(xAxis, yAxis);
                 }
             };

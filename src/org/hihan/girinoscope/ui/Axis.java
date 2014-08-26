@@ -27,26 +27,33 @@ public class Axis {
         }
     }
 
+    private double fraction;
+
     private List<GraphLabel> graphLabels;
 
     private Rectangle maxBounds;
 
-    public Axis(double startValue, double endValue, String format, int divisionCount) {
-        if (divisionCount < 0) {
-            throw new IllegalArgumentException();
-        }
+    public Axis(double startValue, double endValue, String format) {
+        this(startValue, endValue, chooseIncrement(startValue, endValue), format);
+    }
 
+    private static double chooseIncrement(double startValue, double endValue) {
+        double length = endValue - startValue;
+        double increment = Math.pow(10, Math.round(Math.log10(length / 10)));
+        double fraction = length / increment;
+        if (fraction < 5) {
+            increment /= 2;
+        }
+        if (fraction > 10) {
+            increment *= 2;
+        }
+        return increment;
+    }
+
+    public Axis(double startValue, double endValue, double increment, String format) {
+        fraction = (endValue - startValue) / increment;
         graphLabels = new ArrayList<Axis.GraphLabel>();
-        double l = endValue - startValue;
-        for (int i = 0; i < divisionCount; ++i) {
-            double value;
-            if (i == 0) {
-                value = startValue;
-            } else if (i + 1 == divisionCount) {
-                value = endValue;
-            } else {
-                value = startValue + i * l / (divisionCount - 1);
-            }
+        for (double value = startValue; value <= endValue; value += increment) {
             graphLabels.add(new GraphLabel(String.format(format, value)));
         }
     }
@@ -61,6 +68,10 @@ public class Axis {
                 maxBounds = maxBounds.union(graphLabel.bounds);
             }
         }
+    }
+
+    public double getFraction() {
+        return fraction;
     }
 
     public GraphLabel[] graphLabels() {
