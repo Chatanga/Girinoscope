@@ -130,8 +130,13 @@ public class Girino {
     public enum VoltageReference {
 
         AREF(0, "AREF, Internal Vref turned off"), //
-        AVCC(2, "AVCC with external capacitor at AREF pin"), //
-        INTERNAL(3, "Internal 1.1V Vref with external capacitor at AREF pin");
+        AVCC(1, "AVCC with external capacitor at AREF pin"), //
+        /*
+         * The value is misleading since it sets [REFS1, REFS0] to 11 (10 is
+         * reserved). At least, the trigger event mode always uses the [ACI1,
+         * ACI0] value (hence the gap since 2 is also a reserved value).
+         */
+        INTERNAL(2, "Internal 1.1V Vref with external capacitor at AREF pin");
 
         public int value;
         public String description;
