@@ -39,6 +39,7 @@ public class AboutDialog extends JDialog {
 
         pack();
         setLocationRelativeTo(owner);
+        setResizable(false);
     }
 
     private JEditorPane createEditorPane() {
