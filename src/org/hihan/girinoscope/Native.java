@@ -38,7 +38,7 @@ public class Native {
         String osName = System.getProperty("os.name");
         OS os = OS.resolve(osName);
         if (os != null) {
-            boolean is64bits = "64".equals(System.getProperty("sun.arch.data.model").toLowerCase());
+            boolean is64bits = "64".equals(System.getProperty("sun.arch.data.model"));
 
             String nativePath = System.getProperty("girinoscope.native.path");
             if (nativePath == null) {
