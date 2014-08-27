@@ -104,76 +104,82 @@ public class UI extends JFrame {
         @Override
         protected Void doInBackground() throws Exception {
             while (!isCancelled()) {
-                synchronized (UI.this) {
-                    frozenPortId = portId;
-                    frozenParameters.putAll(parameters);
-                }
-
-                setStatus("blue", "Contacting Girino on %s...", frozenPortId.getName());
-
-                Future<Void> connection = executor.submit(new Callable<Void>() {
-
-                    @Override
-                    public Void call() throws Exception {
-                        girino.setConnection(frozenPortId, frozenParameters);
-                        return null;
-                    }
-                });
-                try {
-                    connection.get(5, TimeUnit.SECONDS);
-                } catch (TimeoutException e) {
-                    throw new TimeoutException("No Girino detected on " + frozenPortId.getName());
-                } catch (InterruptedException e) {
-                    connection.cancel(true);
-                    throw e;
-                }
-
-                setStatus("blue", "Acquiring data from %s...", frozenPortId.getName());
-                Callable<byte[]> acquisitionTask = new Callable<byte[]>() {
-
-                    @Override
-                    public byte[] call() throws Exception {
-                        return girino.acquireData();
-                    }
-                };
-                Future<byte[]> acquisition = null;
-                boolean terminated;
-                do {
-                    boolean updateConnection;
-                    synchronized (UI.this) {
-                        parameters.put(Parameter.THRESHOLD, graphPane.getThreshold());
-                        parameters.put(Parameter.WAIT_DURATION, graphPane.getWaitDuration());
-                        updateConnection = !getChanges(frozenParameters).isEmpty() || frozenPortId != portId;
-                    }
-                    if (updateConnection) {
-                        if (acquisition != null) {
-                            acquisition.cancel(true);
-                        }
-                        terminated = true;
-                    } else {
-                        try {
-                            if (acquisition == null) {
-                                acquisition = executor.submit(acquisitionTask);
-                            }
-                            byte[] buffer = acquisition.get(1, TimeUnit.SECONDS);
-                            if (buffer != null) {
-                                publish(buffer);
-                                acquisition = null;
-                                terminated = false;
-                            } else {
-                                terminated = true;
-                            }
-                        } catch (TimeoutException e) {
-                            // Just to wake up regularly.
-                            terminated = false;
-                        } catch (InterruptedException e) {
-                            acquisition.cancel(true);
-                            throw e;
-                        }
-                    }
-                } while (!terminated && !isCancelled());
+                updateConnection();
+                acquireData();
             }
             return null;
+        }
+
+        private void updateConnection() throws Exception {
+            synchronized (UI.this) {
+                frozenPortId = portId;
+                frozenParameters.putAll(parameters);
+            }
+
+            setStatus("blue", "Contacting Girino on %s...", frozenPortId.getName());
+
+            Future<Void> connection = executor.submit(new Callable<Void>() {
+
+                @Override
+                public Void call() throws Exception {
+                    girino.setConnection(frozenPortId, frozenParameters);
+                    return null;
+                }
+            });
+            try {
+                connection.get(5, TimeUnit.SECONDS);
+            } catch (TimeoutException e) {
+                throw new TimeoutException("No Girino detected on " + frozenPortId.getName());
+            } catch (InterruptedException e) {
+                connection.cancel(true);
+                throw e;
+            }
+        }
+
+        private void acquireData() throws Exception {
+            setStatus("blue", "Acquiring data from %s...", frozenPortId.getName());
+            Future<byte[]> acquisition = null;
+            boolean terminated;
+            do {
+                boolean updateConnection;
+                synchronized (UI.this) {
+                    parameters.put(Parameter.THRESHOLD, graphPane.getThreshold());
+                    parameters.put(Parameter.WAIT_DURATION, graphPane.getWaitDuration());
+                    updateConnection = !getChanges(frozenParameters).isEmpty() || frozenPortId != portId;
+                }
+                if (updateConnection) {
+                    if (acquisition != null) {
+                        acquisition.cancel(true);
+                    }
+                    terminated = true;
+                } else {
+                    try {
+                        if (acquisition == null) {
+                            acquisition = executor.submit(new Callable<byte[]>() {
+
+                                @Override
+                                public byte[] call() throws Exception {
+                                    return girino.acquireData();
+                                }
+                            });
+                        }
+                        byte[] buffer = acquisition.get(1, TimeUnit.SECONDS);
+                        if (buffer != null) {
+                            publish(buffer);
+                            acquisition = null;
+                            terminated = false;
+                        } else {
+                            terminated = true;
+                        }
+                    } catch (TimeoutException e) {
+                        // Just to wake up regularly.
+                        terminated = false;
+                    } catch (InterruptedException e) {
+                        acquisition.cancel(true);
+                        throw e;
+                    }
+                }
+            } while (!terminated);
         }
 
         @Override
