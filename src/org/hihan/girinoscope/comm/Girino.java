@@ -100,7 +100,7 @@ public class Girino {
             timeframe = 1280 / frequency;
             tooFast = n < 5;
             reallyTooFast = n < 3;
-            description = String.format("%.0f kHz / %.0f ms", frequency / 1000, timeframe * 1000);
+            description = String.format("%.1f kHz / %.1f ms", frequency / 1000, timeframe * 1000);
         }
 
         public static List<PrescalerInfo> values() {
