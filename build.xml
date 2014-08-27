@@ -2,6 +2,8 @@
 <project name="Girinoscope" default="usage" basedir=".">
 
     <property name="target.dir" value="${basedir}/build" />
+    <property name="source.encoding" value="UTF-8" />
+    <property name="project.version" value="1.1.0" />
 
     <target name="clean" description="Clean the crafting table.">
         <delete dir="${target.dir}" />
@@ -14,10 +16,7 @@
         The bootstrap classpath warning is bound to happen if not using
         a JDK 1.6 or not having it located in the same folder as me.
         -->
-        <javac srcdir="${basedir}/src" destdir="${target.dir}/classes"
-            includeantruntime="false" debug="on"
-            source="1.6" target="1.6"
-            bootclasspath="${user.home}/Applications/jdk1.6.0_45/jre/lib/rt.jar">
+        <javac srcdir="${basedir}/src" destdir="${target.dir}/classes" includeantruntime="false" debug="on" encoding="${source.encoding}" source="1.6" target="1.6" bootclasspath="${user.home}/Applications/jdk1.6.0_45/jre/lib/rt.jar">
             <classpath>
                 <fileset dir="${basedir}/lib" includes="*.jar" />
             </classpath>
@@ -39,8 +38,8 @@
 
     <target name="set-jvmarg">
         <!-- The '-client' is just a default inoffensive option to avoid
-		an empty value for the 'jvmarg' which turns to be a problem for Ant.
-		-->
+        an empty value for the 'jvmarg' which turns to be a problem for Ant.
+        -->
         <condition property="jvmarg" value="-client">
             <os family="windows" />
         </condition>
@@ -49,10 +48,24 @@
         </condition>
         <condition property="jvmarg" value="-client">
             <!-- Tested after 'mac' because a Mac is a Unix
-			(and remember that Ant properties are immutable).
-			-->
+            (and remember that Ant properties are immutable).
+            -->
             <os family="unix" />
         </condition>
+    </target>
+
+    <target name="run-sonar-analysis" depends="clean, build">
+        <property name="sonar.projectKey" value="org.hihan.org.girinoscope" />
+        <property name="sonar.projectName" value="Girinoscope" />
+        <property name="sonar.projectVersion" value="${project.version}" />
+        <property name="sonar.language" value="java" />
+        <property name="sonar.sources" value="src" />
+        <property name="sonar.binaries" value="${target.dir}" />
+        <property name="sonar.sourceEncoding" value="${source.encoding}" />
+        <taskdef uri="antlib:org.sonar.ant" resource="org/sonar/ant/antlib.xml">
+            <classpath path="${basedir}/sonar-ant-task-2.2.jar" />
+        </taskdef>
+        <sonar:sonar xmlns:sonar="antlib:org.sonar.ant" />
     </target>
 
     <target name="run" description="Run Girinoscope." depends="set-jvmarg">
@@ -70,7 +83,7 @@
         <tstamp>
             <format property="build.number" pattern="yyyyddMMhhmm" timezone="UTC" />
         </tstamp>
-        <property name="app.dir" value="Girinoscope-v1.1.0-beta-${build.number}" />
+        <property name="app.dir" value="Girinoscope-v${project.version}-beta-${build.number}" />
         <zip destfile="${target.dir}/dist/${app.dir}.zip">
             <zipfileset dir="${basedir}" prefix="${app.dir}">
                 <include name="lib/*.jar" />
