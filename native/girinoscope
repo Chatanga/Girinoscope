@@ -22,4 +22,4 @@ else
     SCRIPT_DIR=$(dirname `readlink -f "$0"`)
 fi
 
-java $JVMARG -cp "$SCRIPT_DIR/lib/*" -Dgirino.native.path="$SCRIPT_DIR" org.hihan.girinoscope.ui.UI
+java $JVMARG -cp "$SCRIPT_DIR/lib/*" -Dgirinoscope.native.path="$SCRIPT_DIR" org.hihan.girinoscope.ui.UI

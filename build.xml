@@ -3,7 +3,7 @@
 
     <property name="target.dir" value="${basedir}/build" />
     <property name="source.encoding" value="UTF-8" />
-    <property name="project.version" value="1.1.1" />
+    <property name="project.version" value="1.1.2" />
 
     <target name="clean" description="Clean the crafting table.">
         <delete dir="${target.dir}" />
