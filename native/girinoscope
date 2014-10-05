@@ -1,4 +1,4 @@
-#/bin/bash
+#!/bin/bash
 
 if [ -z "$JAVA_HOME" ]; then
     PATH="$JAVA_HOME/bin:$PATH"
