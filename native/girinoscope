@@ -6,8 +6,8 @@ fi
 
 java -version 2> /dev/null
 if [ $? -gt 0 ]; then
-    echo 1 > truc.txt
     echo "No Java instance has been found."
+    exit 1
 fi
 
 if [[ "$OSTYPE" = "darwin"* ]]; then

@@ -14,8 +14,6 @@ public class StatusBar extends JToolBar {
 
     private JLabel label = new JLabel();
 
-    private boolean mirrored;
-
     public StatusBar() {
         setFloatable(false);
         add(Box.createVerticalStrut(16));
@@ -34,7 +32,7 @@ public class StatusBar extends JToolBar {
          * location into account (North or South in our case). It is not the
          * case with the GTK+ LaF which need our help here.
          */
-        mirrored = "com.sun.java.swing.plaf.gtk.GTKLookAndFeel".equals(laf);
+        boolean mirrored = "com.sun.java.swing.plaf.gtk.GTKLookAndFeel".equals(laf);
         super.paintComponent(mirrored ? createVerticalMirrorGraphics(g) : g);
     }
 

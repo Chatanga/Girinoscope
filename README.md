@@ -24,7 +24,7 @@ The Arduino code provided in the [Girino Instructable]
 (http://www.instructables.com/id/Girino-Fast-Arduino-Oscilloscope/)
 doesn't handle very well the `wait duration` parameter that you can set using the vertical green rule
 (the horizontal orange rule is for the threshold to trigger the acquisition).
-There are a small bug when changing the value through the serial interface
+There is a small bug when changing the value through the serial interface
 which can easily be solved by applying the following patch manually:
 
 _Girino.h, line 41:_

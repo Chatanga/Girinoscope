@@ -44,7 +44,7 @@ public class Native {
             if (nativePath == null) {
                 nativePath = "native";
             }
-            logger.log(Level.INFO, "Native path is '{0}'.", nativePath);
+            logger.log(Level.INFO, "Native path is {0}.", nativePath);
 
             File libPath = new File(nativePath);
             libPath = new File(libPath, os.name().toLowerCase());

@@ -148,7 +148,7 @@ public class Girino {
     }
 
     /** Milliseconds to wait once a new connection has been etablished. */
-    private static final int SETUP_DELAY_ON_RESET = 2000;
+    private static final int SETUP_DELAY_ON_RESET = 5000;
 
     private static final String READY_MESSAGE = "Girino ready";
 

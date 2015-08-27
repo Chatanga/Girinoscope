@@ -37,14 +37,18 @@ public class Serial implements Closeable {
         Native.setLibraryPath();
     }
 
-    /** The port we're normally going to use. */
+    /**
+     * The port we're normally going to use. Port detection could be forced by
+     * setting a property: -Dgnu.io.rxtx.SerialPorts=portName
+     */
     private static final Pattern[] ACCEPTABLE_PORT_NAMES = {
-                    //
-                    Pattern.compile("/dev/tty\\.usbserial-.+"), // Mac OS X
-                    Pattern.compile("/dev/tty\\.usbmodem.+"), // Mac OS X
-                    Pattern.compile("/dev/ttyACM\\d+"), // Raspberry Pi
-                    Pattern.compile("/dev/ttyUSB\\d+"), // Linux
-                    Pattern.compile("COM\\d+"), // Windows
+            //
+            Pattern.compile("/dev/tty\\.usbserial-.+"), // Mac OS X
+            Pattern.compile("/dev/tty\\.usbmodem.+"), // Mac OS X
+            Pattern.compile("/dev/ttyACM\\d+"), // Raspberry Pi
+            Pattern.compile("/dev/ttyUSB\\d+"), // Linux
+            // Pattern.compile("/dev/rfcomm\\d+"), // Linux Bluetooth
+            Pattern.compile("COM\\d+"), // Windows
     };
 
     /** Milliseconds to block while waiting for port open. */
@@ -92,15 +96,6 @@ public class Serial implements Closeable {
             for (Pattern acceptablePortName : ACCEPTABLE_PORT_NAMES) {
                 String portName = portIdentifier.getName();
                 if (acceptablePortName.matcher(portName).matches()) {
-                    if (portName.startsWith("/dev/ttyACM")) {
-                        /*
-                         * the next line is for Raspberry Pi and gets us into
-                         * the while loop and was suggested here:
-                         * http://www.raspberrypi
-                         * .org/phpBB3/viewtopic.php?f=81&t=32186
-                         */
-                        System.setProperty("gnu.io.rxtx.SerialPorts", portName);
-                    }
                     ports.add(portIdentifier);
                 }
             }

@@ -3,7 +3,7 @@
 
     <property name="target.dir" value="${basedir}/build" />
     <property name="source.encoding" value="UTF-8" />
-    <property name="project.version" value="1.1.2" />
+    <property name="project.version" value="1.1.3" />
 
     <target name="clean" description="Clean the crafting table.">
         <delete dir="${target.dir}" />
@@ -16,7 +16,16 @@
         The bootstrap classpath warning is bound to happen if not using
         a JDK 1.6 or not having it located in the same folder as me.
         -->
-        <javac srcdir="${basedir}/src" destdir="${target.dir}/classes" includeantruntime="false" debug="on" encoding="${source.encoding}" source="1.6" target="1.6" bootclasspath="${user.home}/Applications/jdk1.6.0_45/jre/lib/rt.jar">
+		<property name="boot.classpath" value="${user.home}/Applications/jdk1.6.0_45/jre/lib/rt.jar" />
+        <javac
+				srcdir="${basedir}/src"
+				destdir="${target.dir}/classes"
+				includeantruntime="false"
+				debug="on"
+				encoding="${source.encoding}"
+				source="1.6"
+				target="1.6"
+				bootclasspath="${boot.classpath}">
             <classpath>
                 <fileset dir="${basedir}/lib" includes="*.jar" />
             </classpath>
