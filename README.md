@@ -29,18 +29,24 @@ which can easily be solved by applying the following patch manually:
 
 _Girino.h, line 41:_
 
-    // Replaced 3 by 4 since the wait duration range is [0, 1280[.
-    #define COMBUFFERSIZE   4   // Size of buffer for incoming numbers
+```c
+// Replaced 3 by 4 since the wait duration range is [0, 1280[.
+#define COMBUFFERSIZE   4   // Size of buffer for incoming numbers
+```
 
 _Girino.ino, line 224:_
 
-    // Added a necessary x2 factor since we read 16 bits now.
-    delay(COMMANDDELAY * 2);
+```c
+// Added a necessary x2 factor since we read 16 bits now.
+delay(COMMANDDELAY * 2);
+```
 
 _Girino.ino, line 229:_
 
-    // Replaced 'uint8' by 'uint16' for the same reason.
-    uint16_t newT = atoi( commandBuffer );
+```c
+// Replaced 'uint8' by 'uint16' for the same reason.
+uint16_t newT = atoi( commandBuffer );
+```
 
 With this simple correction, you should now be able to change the `wait duration` without problem.
 However, remember that this duration is the time spent (or, more exactly, the number of data samples measured) by Girino _after_ the trigger.
