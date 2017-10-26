@@ -13,29 +13,31 @@ import javax.swing.ImageIcon;
  */
 public class Icon {
 
-    public static ImageIcon get(String name) {
-        URL url = Icon.class.getResource(name);
-        if (url != null) {
-            return new ImageIcon(url);
-        } else {
-            throw new IllegalArgumentException("Icon '" + name + "' does not exist.");
-        }
-    }
+	public static ImageIcon get(String name) {
+		URL url = Icon.class.getResource(name);
+		if (url != null) {
+			return new ImageIcon(url);
+		} else {
+			throw new IllegalArgumentException("Icon '" + name
+					+ "' does not exist.");
+		}
+	}
 
-    public static Image getImage(String name) {
-        URL url = Icon.class.getResource(name);
-        if (url != null) {
-            try {
-                return ImageIO.read(url);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        } else {
-            throw new IllegalArgumentException("Icon '" + name + "' does not exist.");
-        }
+	public static Image getImage(String name) {
+		URL url = Icon.class.getResource(name);
+		if (url != null) {
+			try {
+				return ImageIO.read(url);
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
+		} else {
+			throw new IllegalArgumentException("Icon '" + name
+					+ "' does not exist.");
+		}
 
-    }
+	}
 
-    private Icon() {
-    }
+	private Icon() {
+	}
 }
