@@ -331,7 +331,12 @@ public class UI extends JFrame {
 	    if (currentDataAcquisitionTask != null) {
 		currentDataAcquisitionTask.cancel(true);
 	    }
-	    executor.shutdown();
+	    executor.shutdownNow();
+	    try {
+		executor.awaitTermination(2, TimeUnit.SECONDS);
+	    } catch (InterruptedException e) {
+		logger.log(Level.WARNING, "Serial line not responding.", e);
+	    }
 	    girino.disconnect();
 	} catch (IOException e) {
 	    logger.log(Level.WARNING, "When disconnecting from Girino.", e);

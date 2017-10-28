@@ -60,12 +60,12 @@ public class CustomAxisEditionDialog extends JDialog {
 	}
     };
 
-    private final Action validateAction = new AbstractAction("Validate") {
+    private final Action applyAction = new AbstractAction("Apply") {
 	@Override
 	public void actionPerformed(ActionEvent e) {
-	    axisBuilder.setStartValue(((Number) startValueTextField.getValue()).doubleValue());
-	    axisBuilder.setEndValue(((Number) endValueTextField.getValue()).doubleValue());
-	    axisBuilder.setIncrement(((Number) incrementTextField.getValue()).doubleValue());
+	    axisBuilder.setStartValue(getDoubleValue(startValueTextField));
+	    axisBuilder.setEndValue(getDoubleValue(endValueTextField));
+	    axisBuilder.setIncrement(getDoubleValue(incrementTextField));
 	    axisBuilder.setFormat(formatTextField.getText());
 	    setVisible(false);
 	}
@@ -88,7 +88,7 @@ public class CustomAxisEditionDialog extends JDialog {
 	setLayout(new BorderLayout());
 	setBackground(Color.WHITE);
 	add(createEditorPane(), BorderLayout.CENTER);
-	add(createButtonBar(cancelAction, validateAction), BorderLayout.SOUTH);
+	add(createButtonBar(cancelAction, applyAction), BorderLayout.SOUTH);
 
 	pack();
 	setLocationRelativeTo(owner);
@@ -101,7 +101,7 @@ public class CustomAxisEditionDialog extends JDialog {
 	JPanel panel = new JPanel(new GridBagLayout());
 	panel.setBorder(new EmptyBorder(8, 24, 8, 24));
 
-	final List<NumberFormatter> dynamicFormatters = new LinkedList<NumberFormatter>();
+	List<NumberFormatter> dynamicFormatters = new LinkedList<NumberFormatter>();
 
 	GridBagConstraints constraints = new GridBagConstraints();
 
@@ -148,10 +148,58 @@ public class CustomAxisEditionDialog extends JDialog {
 	constraints.gridx = 1;
 	panel.add(createNoticePane(panel), constraints);
 
+	constraintInputValues(dynamicFormatters);
+
+	return panel;
+    }
+
+    private void constraintInputValues(final List<? extends NumberFormatter> dynamicFormatters) {
+
 	startValueTextField.addPropertyChangeListener("editValid", new PropertyChangeListener() {
 	    @Override
 	    public void propertyChange(PropertyChangeEvent evt) {
 		startValueTextField.setBackground(startValueTextField.isEditValid() ? null : Color.RED);
+	    }
+	});
+
+	startValueTextField.addPropertyChangeListener("value", new PropertyChangeListener() {
+	    @Override
+	    public void propertyChange(PropertyChangeEvent evt) {
+		double startValue = getDoubleValue(startValueTextField);
+		double endValue = getDoubleValue(endValueTextField);
+		double increment = getDoubleValue(incrementTextField);
+		if (endValue - startValue < increment) {
+		    endValueTextField.setValue(startValue + increment);
+		}
+	    }
+	});
+
+	endValueTextField.addPropertyChangeListener("editValid", new PropertyChangeListener() {
+	    @Override
+	    public void propertyChange(PropertyChangeEvent evt) {
+		endValueTextField.setBackground(endValueTextField.isEditValid() ? null : Color.RED);
+	    }
+	});
+
+	endValueTextField.addPropertyChangeListener("value", new PropertyChangeListener() {
+	    @Override
+	    public void propertyChange(PropertyChangeEvent evt) {
+		double startValue = getDoubleValue(startValueTextField);
+		double endValue = getDoubleValue(endValueTextField);
+		double increment = getDoubleValue(incrementTextField);
+		if (endValue - startValue < increment) {
+		    startValueTextField.setValue(endValue - increment);
+		}
+	    }
+	});
+
+	incrementTextField.addPropertyChangeListener("value", new PropertyChangeListener() {
+	    @Override
+	    public void propertyChange(PropertyChangeEvent evt) {
+		double increment = getDoubleValue(incrementTextField);
+		if (increment < 0) {
+		    incrementTextField.setValue(-increment);
+		}
 	    }
 	});
 
@@ -174,7 +222,7 @@ public class CustomAxisEditionDialog extends JDialog {
 	    private void update() {
 		try {
 		    formatTextField.setBackground(null);
-		    validateAction.setEnabled(true);
+		    applyAction.setEnabled(true);
 		    for (NumberFormatter formatter : dynamicFormatters) {
 			formatter.setFormat(new DecimalFormat(formatTextField.getText()));
 		    }
@@ -183,12 +231,10 @@ public class CustomAxisEditionDialog extends JDialog {
 		    incrementTextField.setValue(incrementTextField.getValue());
 		} catch (IllegalArgumentException e) {
 		    formatTextField.setBackground(Color.RED);
-		    validateAction.setEnabled(false);
+		    applyAction.setEnabled(false);
 		}
 	    }
 	});
-
-	return panel;
     }
 
     private JFormattedTextField createMumberField(List<NumberFormatter> dynamicFormatters) {
@@ -236,5 +282,9 @@ public class CustomAxisEditionDialog extends JDialog {
 	box.add(new JSeparator(JSeparator.HORIZONTAL), BorderLayout.NORTH);
 	box.add(buttonBar, BorderLayout.CENTER);
 	return box;
+    }
+
+    private double getDoubleValue(JFormattedTextField textField) {
+	return ((Number) textField.getValue()).doubleValue();
     }
 }
