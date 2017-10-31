@@ -20,8 +20,8 @@ you should already be familiar with them.
 
 **Wait duration parameter**
 
-The Arduino code provided in the [Girino Instructable]
-(http://www.instructables.com/id/Girino-Fast-Arduino-Oscilloscope/)
+The Arduino code provided in the
+[Girino Instructable](http://www.instructables.com/id/Girino-Fast-Arduino-Oscilloscope/)
 doesn't handle very well the `wait duration` parameter that you can set using the vertical green rule
 (the horizontal orange rule is for the threshold to trigger the acquisition).
 There is a small bug when changing the value through the serial interface
@@ -49,7 +49,8 @@ uint16_t newT = atoi( commandBuffer );
 ```
 
 With this simple correction, you should now be able to change the `wait duration` without problem.
-However, remember that this duration is the time spent (or, more exactly, the number of data samples measured) by Girino _after_ the trigger.
+However, remember that this duration is the time spent
+(or, more exactly, the number of data samples measured) by Girino _after_ the trigger.
 Per instance, a `wait duration` of `580` gives you `1280 - 580` data measures before the trigger and `580` after.
 If this trigger occurs too early, you will not see much from the past.
 In fact, since Girino resets its data buffer on each acquisition, you will mostly get zeros.
@@ -63,8 +64,9 @@ The prescaler parameter also suffers some limitations signaled by the UI using t
 - orange if it won’t work without optimizing the Girino code,
 - red if it won’t work at all (at least, it never did at home).
 
-The code optimization consists in applying the [advices](doc/girino_optimization.md) given by [womai](http://www.instructables.com/member/womai/)
-in the [Girino Instructable] (http://www.instructables.com/id/Girino-Fast-Arduino-Oscilloscope/).
+The code optimization consists in applying the [advices](doc/girino_optimization.md) given by
+[womai](http://www.instructables.com/member/womai/) in the
+[Girino Instructable] (http://www.instructables.com/id/Girino-Fast-Arduino-Oscilloscope/).
 
 Install
 -------
@@ -75,8 +77,8 @@ and launch the application using the appropriate script at the root
 Of course, since this is a Java application, you need a [JRE 1.6 or higher](https://www.java.com/fr)
 installed on your system (64 bits is currently only supported for the Linux version).
 It shouldn’t be a problem on Linux and Mac, however, if you are an unfortunate Windows user
-who don’t have it installed and don’t want to use the [shameful Oracle’s installer]
-(http://news.techworld.com/applications/3423193/oracle-to-keep-bundling-crapware-with-java-installer/),
+who don’t have it installed and don’t want to use the
+[shameful Oracle’s installer](http://news.techworld.com/applications/3423193/oracle-to-keep-bundling-crapware-with-java-installer/),
 a fine solution is to use the one provided by the Arduino IDE.
 In fact, provided you installed it in the default place, the launch script should find it.
 If not, just edit the appropriate variable in the `girinoscope.bat` file.
