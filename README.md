@@ -66,7 +66,7 @@ The prescaler parameter also suffers some limitations signaled by the UI using t
 
 The code optimization consists in applying the [advices](doc/girino_optimization.md) given by
 [womai](http://www.instructables.com/member/womai/) in the
-[Girino Instructable] (http://www.instructables.com/id/Girino-Fast-Arduino-Oscilloscope/).
+[Girino Instructable](http://www.instructables.com/id/Girino-Fast-Arduino-Oscilloscope/).
 
 Install
 -------
