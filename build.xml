@@ -12,9 +12,39 @@
     <target name="build" description="Build the Girinoscope library.">
         <mkdir dir="${target.dir}/classes" />
 
+        <javac
+                srcdir="${basedir}/src"
+                destdir="${target.dir}/classes"
+                includeantruntime="false"
+                debug="on"
+                compiler="modern"
+                encoding="${source.encoding}">
+            <classpath>
+                <fileset dir="${basedir}/lib" includes="*.jar" />
+            </classpath>
+        </javac>
+
+        <copy todir="${target.dir}/classes">
+            <fileset dir="${basedir}/src" excludes="*.java" />
+        </copy>
+
+        <mkdir dir="${target.dir}/lib" />
+
+        <jar destfile="${target.dir}/lib/Girinoscope.jar">
+            <fileset dir="${target.dir}/classes" />
+            <manifest>
+                <attribute name="Main-Class" value="org.hihan.girinoscope.ui.UI" />
+            </manifest>
+        </jar>
+    </target>
+
+    <target name="strict-build" description="Build the Girinoscope library witch stricter compatibility requirements.">
+        <mkdir dir="${target.dir}/classes" />
+
         <!--
         The bootstrap classpath warning is bound to happen if not using
-        a JDK 1.6 or not having it located in the same folder as me.
+        a JDK 1.6 to build this project (which is perfectly fine) or not
+        having it located in the same folder as me.
         -->
         <property name="boot.classpath" value="${user.home}/Applications/jdk1.6.0_45/jre/lib/rt.jar" />
         <javac

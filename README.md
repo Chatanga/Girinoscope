@@ -89,9 +89,8 @@ Dependencies
 Girinoscope uses the same native library than the Arduino IDE 1.0.5 to manage serial port: the RXTX library.
 It is not necessarily the perfect solution
 and the latest Arduino IDE version (1.5.7 BETA) has droped it in favor of something more elaborate.
-Whatever, the RXTX works well enough for our purposes and, if you have already successfully installed the Arduino IDE,
-Girinoscope should work out of the crafting table.
-Otherwise, there is all the informations you need on the [Arduino web site](http://arduino.cc/en/Guide/HomePage).
+Whatever, the RXTX library works well enough for our purposes
+and it is shipped with this project in the `native` folder.
 
 Build
 -----
@@ -101,6 +100,7 @@ and [Ant](http://ant.apache.org/bindownload.cgi).
 Nothing particular exotic in the Java world.
 Once these tools installed, a simple `ant build` at the root of this project will do the job.
 On success, you can run the application the same way by issuing a `ant run`.
+Alternatively, project settings for Eclipse are also provided.
 
 Author
 ------
