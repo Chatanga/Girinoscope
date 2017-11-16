@@ -73,15 +73,15 @@ Install
 
 Just unzip the [latest release](https://github.com/Chatanga/Girinoscope/releases) somewhere
 and launch the application using the appropriate script at the root
-(`girino` for Linux / Mac and `girino.bat` for Windows).
+(`girinoscope` for Linux / Mac or `girinoscope.bat` for Windows).
 Of course, since this is a Java application, you need a [JRE 1.6 or higher](https://www.java.com/fr)
 installed on your system (64 bits is currently only supported for the Linux version).
 It shouldn’t be a problem on Linux and Mac, however, if you are an unfortunate Windows user
 who don’t have it installed and don’t want to use the
 [shameful Oracle’s installer](http://news.techworld.com/applications/3423193/oracle-to-keep-bundling-crapware-with-java-installer/),
 a fine solution is to use the one provided by the Arduino IDE.
-In fact, provided you installed it in the default place, the launch script should find it.
-If not, just edit the appropriate variable in the `girinoscope.bat` file.
+In fact, provided you have installed it in the default place, the launch script should find it.
+If not, just edit the appropriate variable in the `girinoscope(.bat)` file.
 
 Dependencies
 ------------
@@ -100,7 +100,7 @@ and [Ant](http://ant.apache.org/bindownload.cgi).
 Nothing particular exotic in the Java world.
 Once these tools installed, a simple `ant build` at the root of this project will do the job.
 On success, you can run the application the same way by issuing a `ant run`.
-Alternatively, project settings for Eclipse are also provided.
+Alternatively, project settings for [Eclipse](http://www.eclipse.org/downloads/) are also provided.
 
 Author
 ------
