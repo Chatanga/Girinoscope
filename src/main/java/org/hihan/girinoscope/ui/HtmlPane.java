@@ -14,14 +14,10 @@ import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JEditorPane;
-import javax.swing.JFrame;
 import javax.swing.event.HyperlinkEvent;
 import javax.swing.event.HyperlinkListener;
 import javax.swing.text.AttributeSet;
 import javax.swing.text.Document;
-import javax.swing.text.Element;
-import javax.swing.text.StyleConstants;
-import javax.swing.text.html.HTML;
 import javax.swing.text.html.HTMLDocument;
 import javax.swing.text.html.HTMLEditorKit;
 import javax.swing.text.html.StyleSheet;
@@ -88,40 +84,6 @@ public class HtmlPane extends JEditorPane {
                 }
             }
         });
-    }
-
-    public static void main(String[] args) throws Exception {
-        JFrame frame = new JFrame();
-        JEditorPane edPane = new JEditorPane();
-        edPane.setContentType("text/html");
-
-        HTMLEditorKit hek = new HTMLEditorKit();
-
-        edPane.setEditorKit(hek);
-
-        HTMLDocument doc = (HTMLDocument) edPane.getDocument();
-
-        doc.insertString(0, "Test testing", null);
-
-        Element[] roots = doc.getRootElements();
-        Element body = null;
-        for (int i = 0; i < roots[0].getElementCount(); i++) {
-            Element element = roots[0].getElement(i);
-            if (element.getAttributes().getAttribute(StyleConstants.NameAttribute) == HTML.Tag.BODY) {
-                body = element;
-                break;
-            }
-        }
-
-        //URL url = ClassLoader.getSystemResource("/org/hihan/girinoscope/ui/icon-64.png");
-        URL url = Icon.class.getResource("/org/hihan/girinoscope/ui/icon-64.png");
-        System.out.println(url.toString());
-        doc.insertAfterEnd(body, "<img src='file:/home/antares/Personnel/Productions/Code/Maison/Girinoscope/target/classes/org/hihan/girinoscope/ui/icon-64.png'>");
-        frame.add(edPane);
-
-        frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        frame.pack();
-        frame.setVisible(true);
     }
 
     private static String getHref(HyperlinkEvent event) {
