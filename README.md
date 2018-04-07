@@ -74,7 +74,7 @@ Install
 Just copy the [latest release](https://github.com/Chatanga/Girinoscope/releases) somewhere
 and launch the application by a simple double-click on the JAR.
 In case your system doesn’t know how to handle a JAR,
-you can launch it throw a more explicit `java -jar Girinoscope-*-dist.jar`
+you can launch it through a more explicit `java -jar Girinoscope-*-dist.jar`
 Obviously, since this is a Java application, you need a [JRE 1.7 or higher](https://www.java.com/fr).
 
 Build
