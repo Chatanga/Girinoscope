@@ -34,13 +34,13 @@ public class Serial implements Closeable {
      */
     private static final Pattern[] ACCEPTABLE_PORT_NAMES = {
         //
-        Pattern.compile("/dev/tty\\.usbserial-.+"), // Mac OS X
-        Pattern.compile("/dev/cu\\.wchusbserial.+"), // Mac OS X
-        Pattern.compile("/dev/tty\\.usbmodem.+"), // Mac OS X
-        Pattern.compile("/dev/ttyACM\\d+"), // Raspberry Pi
-        Pattern.compile("/dev/ttyUSB\\d+"), // Linux
-        Pattern.compile("/dev/rfcomm\\d+"), // Linux Bluetooth
-        Pattern.compile("COM\\d+"), // Windows
+        Pattern.compile("\\.*tty\\.usbserial-.+"), // Mac OS X
+        Pattern.compile("\\.*cu\\.wchusbserial.+"), // Mac OS X
+        Pattern.compile("\\.*tty\\.usbmodem.+"), // Mac OS X
+        Pattern.compile("\\.*ttyACM\\d+"), // Raspberry Pi
+        Pattern.compile("\\.*ttyUSB\\d+"), // Linux
+        Pattern.compile("\\.*rfcomm\\d+"), // Linux Bluetooth
+        Pattern.compile("\\.*COM\\d+"), // Windows
     };
 
     /**
@@ -68,8 +68,8 @@ public class Serial implements Closeable {
         List<SerialPort> ports = new LinkedList<>();
 
         for (SerialPort port : SerialPort.getCommPorts()) {
+            String portName = port.getSystemPortName();
             for (Pattern acceptablePortName : ACCEPTABLE_PORT_NAMES) {
-                String portName = port.getSystemPortName();
                 if (acceptablePortName.matcher(portName).matches()) {
                     ports.add(port);
                 }
