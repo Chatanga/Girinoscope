@@ -86,6 +86,21 @@ Once these tools installed, a simple `mvn clean package` at the root of this pro
 On success, you can run the application the same way by issuing a `mvn exec:java`.
 Of course, you can also launch the application without maven using a `java -jar target/Girinoscope-*-dist.jar`.
 
+Troubleshooting
+---------------
+
+** Using a JDK (or JRE) >= 1.9, the application crashes at startup with an
+`InvocationTargetException` caused by a `NullPointerException` in `org.pushingpixels.substance`.**
+
+As a workaround, use `mvn exec:java -Dexec.args="-nolaf"` or `java -jar target/Girinoscope-*-dist.jar -nolaf`
+to disable the Substance Look and Feel.
+
+**An USB port is detected but cannot be opened.**
+
+On Linux (Ubuntu), you need to be a member of the dialout group
+(a `sudo usermod -a -G dialout $USER` should do the trick).
+Note that on other distributions, the group(s) involved could be different.
+
 Author
 ------
 

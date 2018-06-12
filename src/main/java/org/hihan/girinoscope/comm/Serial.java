@@ -72,6 +72,7 @@ public class Serial implements Closeable {
             for (Pattern acceptablePortName : ACCEPTABLE_PORT_NAMES) {
                 if (acceptablePortName.matcher(portName).matches()) {
                     ports.add(port);
+                    break;
                 }
             }
         }
@@ -79,15 +80,19 @@ public class Serial implements Closeable {
         return ports;
     }
 
-    public Serial(SerialPort port) {
-        port.openPort();
-        port.setComPortTimeouts(SerialPort.TIMEOUT_READ_BLOCKING, TIME_OUT, TIME_OUT);
-        port.setComPortParameters(DATA_RATE, 8, SerialPort.ONE_STOP_BIT, SerialPort.NO_PARITY);
-        port.setFlowControl(SerialPort.FLOW_CONTROL_DISABLED);
+    public Serial(SerialPort port) throws IOException {
+        if (port.openPort()) {
+            port.setComPortTimeouts(SerialPort.TIMEOUT_READ_BLOCKING, TIME_OUT, TIME_OUT);
+            port.setComPortParameters(DATA_RATE, 8, SerialPort.ONE_STOP_BIT, SerialPort.NO_PARITY);
+            port.setFlowControl(SerialPort.FLOW_CONTROL_DISABLED);
 
-        this.port = port;
-        output = port.getOutputStream();
-        input = port.getInputStream();
+            this.port = port;
+
+            output = port.getOutputStream();
+            input = port.getInputStream();
+        } else {
+            throw new IOException("Cannot open serial port.");
+        }
     }
 
     @Override
@@ -95,6 +100,8 @@ public class Serial implements Closeable {
         if (port != null) {
             try {
                 output.flush();
+                output.close();
+                input.close();
             } catch (IOException e) {
                 logger.log(Level.WARNING, "When flushing output before closing serial.", e);
             }

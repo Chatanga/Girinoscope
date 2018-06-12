@@ -16,13 +16,16 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.EnumMap;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -65,6 +68,8 @@ public class UI extends JFrame {
     private static final Logger logger = Logger.getLogger(UI.class.getName());
 
     public static void main(String[] args) throws Exception {
+        Set<String> flags = new HashSet(Arrays.asList(args));
+        final boolean noLaf = flags.contains("-nolaf");
 
         Logger rootLogger = Logger.getLogger("org.hihan.girinoscope");
         rootLogger.setLevel(Level.WARNING);
@@ -79,7 +84,9 @@ public class UI extends JFrame {
         SwingUtilities.invokeAndWait(new Runnable() {
             @Override
             public void run() {
-                SubstanceLookAndFeel.setSkin(new CeruleanSkin());
+                if (!noLaf) {
+                    SubstanceLookAndFeel.setSkin(new CeruleanSkin());
+                }
                 JFrame frame = new UI();
                 frame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
                 frame.pack();
@@ -149,7 +156,7 @@ public class UI extends JFrame {
                 }
             });
             try {
-                connection.get(5, TimeUnit.SECONDS);
+                connection.get(15, TimeUnit.SECONDS);
             } catch (TimeoutException e) {
                 throw new TimeoutException("No Girino detected on " + frozenPort.getSystemPortName());
             } catch (InterruptedException e) {
@@ -220,6 +227,7 @@ public class UI extends JFrame {
                 }
                 setStatus("blue", "Done acquiring data from %s.", frozenPort.getSystemPortName());
             } catch (ExecutionException e) {
+                e.printStackTrace();
                 setStatus("red", e.getCause().getMessage());
             } catch (Exception e) {
                 setStatus("red", e.getMessage());
@@ -402,12 +410,12 @@ public class UI extends JFrame {
     private JMenu createSerialMenu() {
         JMenu menu = new JMenu("Serial port");
         ButtonGroup group = new ButtonGroup();
-        for (final SerialPort portId : Serial.enumeratePorts()) {
-            Action setSerialPort = new AbstractAction(portId.getSystemPortName()) {
+        for (final SerialPort port : Serial.enumeratePorts()) {
+            Action setSerialPort = new AbstractAction(port.getSystemPortName()) {
 
                 @Override
                 public void actionPerformed(ActionEvent event) {
-                    UI.this.port = portId;
+                    UI.this.port = port;
                 }
             };
             AbstractButton button = new JCheckBoxMenuItem(setSerialPort);

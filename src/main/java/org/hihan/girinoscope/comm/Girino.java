@@ -202,26 +202,23 @@ public class Girino {
                     disconnect();
                 }
 
-                try (Serial newSerial = new Serial(port)) {
-                    /*
-                     * Note that the USB to serial adapter is usually configured
-                     * to reset the AVR each time a connection is etablish. The
-                     * delay here is to give some time to the controller to set
-                     * itself up.
-                     */
-                    Thread.sleep(SETUP_DELAY_ON_RESET);
+                serial = new Serial(port);
+                /*
+                 * Note that the USB to serial adapter is usually configured to
+                 * reset the AVR each time a connection is etablish. The delay
+                 * here is to give some time to the controller to set itself up.
+                 */
+                Thread.sleep(SETUP_DELAY_ON_RESET);
 
-                    String data;
-                    do {
-                        data = newSerial.readLine();
-                    } while (!data.endsWith(READY_MESSAGE));
+                String data;
+                do {
+                    data = serial.readLine();
+                } while (!data.endsWith(READY_MESSAGE));
 
-                    serial = newSerial;
-                    readParameters();
-                }
+                readParameters();
             }
         } else {
-            throw new IllegalArgumentException("No serial port");
+            throw new IllegalArgumentException("No serial port (see README.md file)");
         }
     }
 
