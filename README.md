@@ -89,9 +89,10 @@ Of course, you can also launch the application without maven using a `java -jar 
 Troubleshooting
 ---------------
 
-** Using a JDK (or JRE) >= 1.9, the application crashes at startup with an
-`InvocationTargetException` caused by a `NullPointerException` in `org.pushingpixels.substance`.**
+**The application crashes at startup when Using a JDK (or JRE) >= 1.9.**
 
+To be exact, an`InvocationTargetException` caused by a `NullPointerException` in `org.pushingpixels.substance`
+is raised at startup.
 As a workaround, use `mvn exec:java -Dexec.args="-nolaf"` or `java -jar target/Girinoscope-*-dist.jar -nolaf`
 to disable the Substance Look and Feel.
 
