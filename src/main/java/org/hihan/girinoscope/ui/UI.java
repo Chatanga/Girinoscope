@@ -68,7 +68,7 @@ public class UI extends JFrame {
     private static final Logger logger = Logger.getLogger(UI.class.getName());
 
     public static void main(String[] args) throws Exception {
-        Set<String> flags = new HashSet(Arrays.asList(args));
+        Set<String> flags = new HashSet<>(Arrays.asList(args));
         final boolean noLaf = flags.contains("-nolaf");
 
         Logger rootLogger = Logger.getLogger("org.hihan.girinoscope");

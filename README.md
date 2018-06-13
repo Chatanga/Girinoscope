@@ -98,7 +98,7 @@ to disable the Substance Look and Feel.
 
 **An USB port is detected but cannot be opened.**
 
-On Linux (Ubuntu), you need to be a member of the dialout group
+On Linux (Ubuntu), you need to be a member of the `dialout` group
 (a `sudo usermod -a -G dialout $USER` should do the trick).
 Note that on other distributions, the group(s) involved could be different.
 
