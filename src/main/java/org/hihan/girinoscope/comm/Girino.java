@@ -167,7 +167,7 @@ public class Girino {
     /**
      * Milliseconds to wait once a new connection has been etablished.
      */
-    private static final int SETUP_DELAY_ON_RESET = 5000;
+    private static final int SETUP_DELAY_ON_RESET = 2000;
 
     private static final String READY_MESSAGE = "Girino ready";
 
@@ -203,17 +203,22 @@ public class Girino {
                 }
 
                 serial = new Serial(port);
-                /*
-                 * Note that the USB to serial adapter is usually configured to
-                 * reset the AVR each time a connection is etablish. The delay
-                 * here is to give some time to the controller to set itself up.
-                 */
-                Thread.sleep(SETUP_DELAY_ON_RESET);
-
-                String data;
-                do {
-                    data = serial.readLine();
-                } while (!data.endsWith(READY_MESSAGE));
+                try {
+                    /*
+                     * Note that the USB to serial adapter is usually configured
+                     * to reset the AVR each time a connection is etablish. The
+                     * delay here is to give some time to the controller to set
+                     * itself up.
+                     */
+                    Thread.sleep(SETUP_DELAY_ON_RESET);
+                    
+                    String data;
+                    do {
+                        data = serial.readLine();
+                    } while (!data.endsWith(READY_MESSAGE));
+                } catch (InterruptedException e) {
+                    disconnect();
+                }
 
                 readParameters();
             }

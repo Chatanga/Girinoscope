@@ -158,6 +158,7 @@ public class UI extends JFrame {
             try {
                 connection.get(15, TimeUnit.SECONDS);
             } catch (TimeoutException e) {
+                connection.cancel(true);
                 throw new TimeoutException("No Girino detected on " + frozenPort.getSystemPortName());
             } catch (InterruptedException e) {
                 connection.cancel(true);

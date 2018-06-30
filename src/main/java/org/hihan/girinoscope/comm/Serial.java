@@ -34,13 +34,13 @@ public class Serial implements Closeable {
      */
     private static final Pattern[] ACCEPTABLE_PORT_NAMES = {
         //
-        Pattern.compile("\\.*tty\\.usbserial-.+"), // Mac OS X
-        Pattern.compile("\\.*cu\\.wchusbserial.+"), // Mac OS X
-        Pattern.compile("\\.*tty\\.usbmodem.+"), // Mac OS X
-        Pattern.compile("\\.*ttyACM\\d+"), // Raspberry Pi
-        Pattern.compile("\\.*ttyUSB\\d+"), // Linux
-        Pattern.compile("\\.*rfcomm\\d+"), // Linux Bluetooth
-        Pattern.compile("\\.*COM\\d+"), // Windows
+        Pattern.compile(".*tty\\.usbserial-.+"), // Mac OS X
+        Pattern.compile(".*cu\\.wchusbserial.+"), // Mac OS X
+        Pattern.compile(".*tty\\.usbmodem.+"), // Mac OS X
+        Pattern.compile(".*ttyACM\\d+"), // Raspberry Pi
+        Pattern.compile(".*ttyUSB\\d+"), // Linux
+        Pattern.compile(".*rfcomm\\d+"), // Linux Bluetooth
+        Pattern.compile(".*COM\\d+"), // Windows
     };
 
     /**
@@ -81,11 +81,11 @@ public class Serial implements Closeable {
     }
 
     public Serial(SerialPort port) throws IOException {
-        if (port.openPort()) {
-            port.setComPortTimeouts(SerialPort.TIMEOUT_READ_BLOCKING, TIME_OUT, TIME_OUT);
-            port.setComPortParameters(DATA_RATE, 8, SerialPort.ONE_STOP_BIT, SerialPort.NO_PARITY);
-            port.setFlowControl(SerialPort.FLOW_CONTROL_DISABLED);
+        port.setComPortTimeouts(SerialPort.TIMEOUT_READ_BLOCKING, TIME_OUT, TIME_OUT);
+        port.setComPortParameters(DATA_RATE, 8, SerialPort.ONE_STOP_BIT, SerialPort.NO_PARITY);
+        port.setFlowControl(SerialPort.FLOW_CONTROL_DISABLED);
 
+        if (port.openPort()) {
             this.port = port;
 
             output = port.getOutputStream();
