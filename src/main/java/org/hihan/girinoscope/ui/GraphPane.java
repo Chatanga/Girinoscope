@@ -72,7 +72,7 @@ public class GraphPane extends JPanel {
     public GraphPane(int initialThreshold, int initialWaitDuration) {
         threshold = initialThreshold;
         waitDuration = initialWaitDuration;
-        addMouseMotionListener(new MouseMotionListener() {
+        super.addMouseMotionListener(new MouseMotionListener() {
 
             @Override
             public void mouseMoved(MouseEvent event) {
@@ -176,6 +176,7 @@ public class GraphPane extends JPanel {
     protected void paintComponent(Graphics g) {
         Graphics2D g2d = (Graphics2D) g;
 
+        // Performance issues on Linux without an explicit -Dsun.java2d.opengl=true.
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         g2d.setRenderingHint(RenderingHints.KEY_ALPHA_INTERPOLATION, RenderingHints.VALUE_ALPHA_INTERPOLATION_QUALITY);
 

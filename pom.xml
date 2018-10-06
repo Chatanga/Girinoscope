@@ -22,17 +22,6 @@
             <url>https://github.com/reallinfo</url>
         </contributor>
     </contributors>  
-    
-    <!--repositories>
-        <repository>
-            <id>arcsmed</id>
-            <url>https://nexus.arcsmed.at/content/repositories/homer.core/</url>
-        </repository>
-        <repository>
-            <id>tidalwave</id>
-            <url>http://services.tidalwave.it/nexus/content/repositories/thirdparty/</url>
-        </repository>
-    </repositories-->
   
     <properties>
         <maven.compiler.source>1.7</maven.compiler.source>
@@ -41,21 +30,11 @@
     </properties>
 
     <dependencies>
-        <!--dependency>
-            <groupId>gnu.io</groupId>
-            <artifactId>rxtx</artifactId>
-            <version>2.1.7</version>
-        </dependency-->
         <dependency>
             <groupId>com.fazecast</groupId>
             <artifactId>jSerialComm</artifactId>
             <version>2.0.2</version>
         </dependency>
-        <!--dependency>
-            <groupId>ch.randelshofer</groupId>
-            <artifactId>quaqua</artifactId>
-            <version>8.0</version>
-        </dependency-->
         <dependency>
             <groupId>com.github.insubstantial</groupId>
             <artifactId>substance</artifactId>
@@ -118,7 +97,7 @@
                         <configuration>
                             <archive>
                                 <manifest>
-                                    <mainClass>org.hihan.girinoscope.ui.UI</mainClass>
+                                    <mainClass>Girinoscope</mainClass>
                                 </manifest>
                             </archive>
                             <descriptorRefs>
