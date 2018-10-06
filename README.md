@@ -96,7 +96,7 @@ is raised at startup.
 As a workaround, use `mvn exec:java -Dexec.args="-nolaf"` or `java -jar target/Girinoscope-*-dist.jar -nolaf`
 to disable the Substance Look and Feel.
 
-**The UI is not very responsive on Linux, in particular when moving the dragging the trigger axes.**
+**The UI is not very responsive on Linux, in particular when dragging the trigger axes.**
 
 Use `java -Dsun.java2d.opengl=true -jar target/Girinoscope-*-dist.jar` to enable the GPU acceleration.
 
