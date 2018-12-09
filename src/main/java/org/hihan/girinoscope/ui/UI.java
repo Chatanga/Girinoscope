@@ -183,15 +183,15 @@ public class UI extends JFrame {
                     }
                     terminated = true;
                 } else {
+                    if (acquisition == null) {
+                        acquisition = executor.submit(new Callable<byte[]>() {
+                            @Override
+                            public byte[] call() throws Exception {
+                                return girino.acquireData();
+                            }
+                        });
+                    }
                     try {
-                        if (acquisition == null) {
-                            acquisition = executor.submit(new Callable<byte[]>() {
-                                @Override
-                                public byte[] call() throws Exception {
-                                    return girino.acquireData();
-                                }
-                            });
-                        }
                         byte[] buffer = acquisition.get(1, TimeUnit.SECONDS);
                         if (buffer != null) {
                             publish(buffer);
@@ -228,7 +228,7 @@ public class UI extends JFrame {
                 }
                 setStatus("blue", "Done acquiring data from %s.", frozenPort.getSystemPortName());
             } catch (ExecutionException e) {
-                e.printStackTrace();
+                logger.log(Level.WARNING, "When acquiring data.", e);
                 setStatus("red", e.getCause().getMessage());
             } catch (Exception e) {
                 setStatus("red", e.getMessage());
@@ -411,12 +411,12 @@ public class UI extends JFrame {
     private JMenu createSerialMenu() {
         JMenu menu = new JMenu("Serial port");
         ButtonGroup group = new ButtonGroup();
-        for (final SerialPort port : Serial.enumeratePorts()) {
-            Action setSerialPort = new AbstractAction(port.getSystemPortName()) {
+        for (final SerialPort newPort : Serial.enumeratePorts()) {
+            Action setSerialPort = new AbstractAction(newPort.getSystemPortName()) {
 
                 @Override
                 public void actionPerformed(ActionEvent event) {
-                    UI.this.port = port;
+                    UI.this.port = newPort;
                 }
             };
             AbstractButton button = new JCheckBoxMenuItem(setSerialPort);

@@ -11,12 +11,12 @@ import javax.swing.UIManager;
 @SuppressWarnings("serial")
 public class StatusBar extends JToolBar {
 
-    private JLabel label = new JLabel();
+    private final JLabel label = new JLabel();
 
     public StatusBar() {
-        setFloatable(false);
-        add(Box.createVerticalStrut(16));
-        add(label);
+        super.setFloatable(false);
+        super.add(Box.createVerticalStrut(16));
+        super.add(label);
     }
 
     public void setText(String text) {

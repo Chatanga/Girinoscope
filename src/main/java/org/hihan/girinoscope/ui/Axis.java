@@ -58,7 +58,7 @@ public class Axis {
 
     public static class GraphLabel {
 
-        private String label;
+        private final String label;
 
         private Rectangle bounds;
 

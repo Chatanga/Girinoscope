@@ -24,8 +24,8 @@ public class Girino {
         WAIT_DURATION("w", true), //
         THRESHOLD("t", true);
 
-        private String command;
-        private boolean readable;
+        private final String command;
+        private final boolean readable;
 
         Parameter(String command, boolean readable) {
             this.command = command;
@@ -111,7 +111,7 @@ public class Girino {
         }
 
         public static List<PrescalerInfo> values() {
-            List<PrescalerInfo> infos = new LinkedList<PrescalerInfo>();
+            List<PrescalerInfo> infos = new LinkedList<>();
             for (int i = 2; i < 8; ++i) {
                 infos.add(new PrescalerInfo(i));
             }
@@ -162,7 +162,7 @@ public class Girino {
     /**
      * The Arduino clock frequency in milliseconds.
      */
-    private static final int BASE_FREQUENCY = 16_1000_1000;
+    private static final int BASE_FREQUENCY = 16_000_000;
 
     /**
      * Milliseconds to wait once a new connection has been etablished.
@@ -181,7 +181,7 @@ public class Girino {
 
     private SerialPort port;
 
-    private Map<Parameter, Integer> parameters = new HashMap<>();
+    private final Map<Parameter, Integer> parameters = new HashMap<>();
 
     public static Map<Parameter, Integer> getDefaultParameters(Map<Parameter, Integer> parameters) {
         parameters.put(Parameter.BUFFER_SIZE, FRAME_SIZE);
@@ -211,7 +211,7 @@ public class Girino {
                      * itself up.
                      */
                     Thread.sleep(SETUP_DELAY_ON_RESET);
-                    
+
                     String data;
                     do {
                         data = serial.readLine();

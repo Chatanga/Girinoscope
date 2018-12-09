@@ -100,7 +100,7 @@ public class CustomAxisEditionDialog extends JDialog {
         JPanel panel = new JPanel(new GridBagLayout());
         panel.setBorder(new EmptyBorder(8, 24, 8, 24));
 
-        List<NumberFormatter> dynamicFormatters = new LinkedList<NumberFormatter>();
+        List<NumberFormatter> dynamicFormatters = new LinkedList<>();
 
         GridBagConstraints constraints = new GridBagConstraints();
 

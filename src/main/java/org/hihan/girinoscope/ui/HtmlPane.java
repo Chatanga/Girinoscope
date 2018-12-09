@@ -63,13 +63,14 @@ public class HtmlPane extends JEditorPane {
                 return document;
             }
         };
-        StyleSheet styleSheet = kit.getStyleSheet();
-        styleSheet.addRule("body {bgcolor: white; font-family: Sans-Serif;}");
 
         setEditorKit(kit);
         setContentType("text/html");
         setText(text);
         setEditable(false);
+
+        StyleSheet styleSheet = ((HTMLDocument) getDocument()).getStyleSheet();
+        styleSheet.addRule("body {bgcolor: white; font-family: Sans-Serif;}");
 
         addHyperlinkListener(new HyperlinkListener() {
             @Override
