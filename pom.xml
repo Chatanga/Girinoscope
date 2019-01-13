@@ -3,10 +3,10 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.hihan</groupId>
     <artifactId>girinoscope</artifactId>
-    <version>1.2.2-SNAPSHOT</version>
-    
+    <version>1.2.2</version>
+
     <name>Girinoscope</name>
-    <description>A simple graphical user interface for Girino, a Fast Arduino Oscilloscope running on Linux, Mac OS X and Windows.</description>
+    <description>A simple graphical user interface for Girino, a Fast Arduino Oscilloscope running on Linux, Mac OS X and Windows.</description>
     <url>https://github.com/Chatanga/Girinoscope</url>
     <inceptionYear>2014</inceptionYear>
     <developers>
@@ -21,8 +21,8 @@
             <name>reallinfo</name>
             <url>https://github.com/reallinfo</url>
         </contributor>
-    </contributors>  
-  
+    </contributors>
+
     <properties>
         <maven.compiler.source>1.7</maven.compiler.source>
         <maven.compiler.target>1.7</maven.compiler.target>
@@ -66,7 +66,29 @@
             </resource>
         </resources>
 
+        <!-- To check versions: mvn versions:display-plugin-updates -->
         <plugins>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <version>3.0.0-M2</version>
+                <executions>
+                    <execution>
+                        <id>enforce-maven</id>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <requireMavenVersion>
+                                    <version>3.0.5</version>
+                                </requireMavenVersion>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
 
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
@@ -83,11 +105,11 @@
                     <mainClass>org.hihan.girinoscope.ui.UI</mainClass>
                 </configuration>
             </plugin>
-            
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-assembly-plugin</artifactId>
-                <version>2.2-beta-5</version>
+                <version>3.1.1</version>
                 <executions>
                     <execution>
                         <phase>package</phase>
@@ -105,6 +127,7 @@
                             </descriptorRefs>
                             <finalName>${project.name}-${project.version}-dist</finalName>
                             <appendAssemblyId>false</appendAssemblyId>
+                            <attach>false</attach>
                         </configuration>
                     </execution>
                 </executions>
