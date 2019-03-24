@@ -17,7 +17,7 @@ import java.util.HashMap;
 import java.util.Map;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
-import org.hihan.girinoscope.comm.Girino;
+import org.hihan.girinoscope.comm.FrameFormat;
 import org.hihan.girinoscope.ui.Axis.GraphLabel;
 import org.jetbrains.annotations.NotNull;
 
@@ -38,21 +38,21 @@ public class GraphPane extends JPanel {
 
     private static final Font FONT = Font.decode(Font.MONOSPACED);
 
-    private static final Stroke DASHED = new BasicStroke(1, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0,
-            new float[]{5}, 0);
+    private static final Stroke DASHED = new BasicStroke(1, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, new float[]{5}, 0);
 
-    private static final Stroke DOTTED = new BasicStroke(1, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0,
-            new float[]{3}, 0);
-
-    private static final int V_MAX = 255;
-
-    private static final int U_MAX = Girino.FRAME_SIZE - 1;
+    private static final Stroke DOTTED = new BasicStroke(1, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, new float[]{3}, 0);
 
     private Stroke dataStroke = new BasicStroke(1, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL);
 
     private Axis xAxis;
 
     private Axis yAxis;
+
+    private FrameFormat frameFormat;
+
+    private int vMax;
+
+    private int uMax;
 
     private byte[] data;
 
@@ -69,25 +69,25 @@ public class GraphPane extends JPanel {
 
     private Rule grabbedRule;
 
-    public GraphPane(int initialThreshold, int initialWaitDuration) {
-        threshold = initialThreshold;
-        waitDuration = initialWaitDuration;
+    public GraphPane() {
         super.addMouseMotionListener(new MouseMotionListener() {
+
+            private final int HAND_RADIUS = 16;
 
             @Override
             public void mouseMoved(MouseEvent event) {
                 Map<Rule, Point> anchors = new HashMap<>();
 
-                Point thresholdRuleAnchorLocation = toGraphArea(U_MAX, threshold);
+                Point thresholdRuleAnchorLocation = toGraphArea(uMax, threshold);
                 SwingUtilities.convertPointToScreen(thresholdRuleAnchorLocation, GraphPane.this);
                 anchors.put(Rule.THRESHOLD_RULE, thresholdRuleAnchorLocation);
 
-                Point waitDurationRuleAnchorLocation = toGraphArea(waitDuration, V_MAX);
+                Point waitDurationRuleAnchorLocation = toGraphArea(waitDuration, vMax);
                 SwingUtilities.convertPointToScreen(waitDurationRuleAnchorLocation, GraphPane.this);
                 anchors.put(Rule.WAIT_DURATION_RULE, waitDurationRuleAnchorLocation);
 
                 if (grabbedRule != null) {
-                    boolean stillLocked = anchors.get(grabbedRule).distance(event.getLocationOnScreen()) < 16;
+                    boolean stillLocked = anchors.get(grabbedRule).distance(event.getLocationOnScreen()) < HAND_RADIUS;
                     if (!stillLocked) {
                         setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
                         grabbedRule = null;
@@ -97,7 +97,7 @@ public class GraphPane extends JPanel {
 
                 if (grabbedRule == null) {
                     for (Map.Entry<Rule, Point> entry : anchors.entrySet()) {
-                        boolean nowLocked = entry.getValue().distance(event.getLocationOnScreen()) < 16;
+                        boolean nowLocked = entry.getValue().distance(event.getLocationOnScreen()) < HAND_RADIUS;
                         if (nowLocked) {
                             setCursor(new Cursor(Cursor.HAND_CURSOR));
                             grabbedRule = entry.getKey();
@@ -118,12 +118,12 @@ public class GraphPane extends JPanel {
 
                         case THRESHOLD_RULE:
                             int newThreshold = uv.y;
-                            GraphPane.this.threshold = Math.max(0, Math.min(newThreshold, V_MAX));
+                            setThreshold(Math.max(0, Math.min(newThreshold, vMax)));
                             break;
 
                         case WAIT_DURATION_RULE:
                             int newWaitDuration = uv.x;
-                            GraphPane.this.waitDuration = Math.max(0, Math.min(newWaitDuration, U_MAX));
+                            setWaitDuration(Math.max(0, Math.min(newWaitDuration, uMax)));
                             break;
 
                         default:
@@ -133,6 +133,16 @@ public class GraphPane extends JPanel {
                 }
             }
         });
+    }
+
+    public void setThreshold(int threshold) {
+        this.threshold = threshold;
+        repaint();
+    }
+
+    public void setWaitDuration(int waitDuration) {
+        this.waitDuration = waitDuration;
+        repaint();
     }
 
     public void setDataStrokeWidth(float width) {
@@ -155,6 +165,12 @@ public class GraphPane extends JPanel {
         repaint();
     }
 
+    public void setFrameFormat(FrameFormat frameFormat) {
+        this.frameFormat = frameFormat;
+        vMax = frameFormat.sampleMaxValue;
+        uMax = frameFormat.sampleCount - 1;
+    }
+
     public void setData(byte[] data) {
         this.data = data;
         repaint();
@@ -162,6 +178,10 @@ public class GraphPane extends JPanel {
 
     public byte[] getData() {
         return data;
+    }
+
+    public int[] getValues() {
+        return frameFormat.readValues(data);
     }
 
     public int getThreshold() {
@@ -265,10 +285,10 @@ public class GraphPane extends JPanel {
         g.setColor(DATA_COLOR);
         Stroke defaultStroke = g.getStroke();
         g.setStroke(dataStroke);
-        int u = U_MAX;
+        int u = uMax;
         Point previousPoint = null;
-        for (byte b : data) {
-            Point point = toGraphArea(u--, b & 0xFF);
+        for (int value : getValues()) {
+            Point point = toGraphArea(u--, value);
             if (previousPoint != null) {
                 g.drawLine(previousPoint.x, previousPoint.y, point.x, point.y);
             }
@@ -279,7 +299,7 @@ public class GraphPane extends JPanel {
 
     private void paintThresholdRule(Graphics2D g) {
         g.setColor(THRESHOLD_COLOR);
-        Point point = toGraphArea(U_MAX, threshold);
+        Point point = toGraphArea(uMax, threshold);
         Stroke defaultStroke = g.getStroke();
         g.setStroke(DOTTED);
         g.drawLine(point.x, point.y, point.x + graphArea.width, point.y);
@@ -297,7 +317,7 @@ public class GraphPane extends JPanel {
 
     private void paintWaitDurationRule(Graphics2D g) {
         g.setColor(WAIT_DURATION_COLOR);
-        Point point = toGraphArea(waitDuration, V_MAX);
+        Point point = toGraphArea(waitDuration, vMax);
         Stroke defaultStroke = g.getStroke();
         g.setStroke(DOTTED);
         g.drawLine(point.x, point.y, point.x, point.y + graphArea.height);
@@ -315,15 +335,15 @@ public class GraphPane extends JPanel {
 
     @NotNull
     private Point toGraphArea(int u, int v) {
-        int x = Math.round((U_MAX - u) * graphArea.width / U_MAX + graphArea.x);
-        int y = Math.round((V_MAX - v) * graphArea.height / V_MAX + graphArea.y);
+        int x = Math.round((uMax - u) * graphArea.width / uMax + graphArea.x);
+        int y = Math.round((vMax - v) * graphArea.height / vMax + graphArea.y);
         return new Point(x, y);
     }
 
     @NotNull
     private Point toData(int x, int y) {
-        int u = Math.round(U_MAX - (x - graphArea.x) * U_MAX / graphArea.width);
-        int v = Math.round(V_MAX - (y - graphArea.y) * V_MAX / graphArea.height);
+        int u = Math.round(uMax - (x - graphArea.x) * uMax / graphArea.width);
+        int v = Math.round(vMax - (y - graphArea.y) * vMax / graphArea.height);
         return new Point(u, v);
     }
 }

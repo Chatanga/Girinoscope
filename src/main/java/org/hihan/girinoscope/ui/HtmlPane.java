@@ -27,7 +27,7 @@ import org.jetbrains.annotations.Nullable;
 @SuppressWarnings("serial")
 public class HtmlPane extends JEditorPane {
 
-    private static final Logger logger = Logger.getLogger(HtmlPane.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(HtmlPane.class.getName());
 
     public static String toHexCode(Color color) {
         return String.format("#%02X%02X%02X%02X", //
@@ -80,7 +80,7 @@ public class HtmlPane extends JEditorPane {
                     try {
                         Desktop.getDesktop().browse(new URI(href));
                     } catch (URISyntaxException | IOException e) {
-                        logger.log(Level.WARNING, "Can’t open link " + href, e);
+                        LOGGER.log(Level.WARNING, "Can’t open link " + href, e);
                     }
                 }
             }

@@ -93,7 +93,7 @@ public class CustomAxisEditionDialog extends JDialog {
         setLocationRelativeTo(owner);
         setResizable(false);
 
-        DialogHelper.installEscapeCloseOperation(this);
+        DialogHelper.installEscapeCloseOperation(CustomAxisEditionDialog.this);
     }
 
     private JPanel createEditorPane() {

@@ -15,7 +15,7 @@ import java.util.regex.Pattern;
  * Reading operations are semi-interruptible here. As long as nothing as been
  * read, it can be interrupted, but once something has been read, it continues
  * up to the line / buffer completion. This behavior is here to avoid to stop
- * reading a bunch of data sent by the Girino. It do it fast enough not to
+ * reading a bunch of data sent by the Girino. It does it fast enough not to
  * bother us. The only delay we want to interrupt is when nothing is coming, per
  * instance when we wait for the trigger to happen. A crossover can still occur
  * - the trigger happening the same time the user cancel the operation - but it
@@ -26,9 +26,9 @@ import java.util.regex.Pattern;
  */
 public class Serial implements Closeable {
 
-    private static final Logger logger = Logger.getLogger(Serial.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(Serial.class.getName());
 
-    /**
+    /*
      * The ports we're normally going to use: USB (or Bluetooth) to serial
      * adapters.
      */
@@ -43,17 +43,17 @@ public class Serial implements Closeable {
         Pattern.compile(".*COM\\d+"), // Windows
     };
 
-    /**
+    /*
      * Milliseconds to block while waiting for port open.
      */
     private static final int TIME_OUT = 2000;
 
-    /**
+    /*
      * Default bits per second for COM port.
      */
     private static final int DATA_RATE = 115200;
 
-    /**
+    /*
      * Milliseconds to wait when no input is available.
      */
     private static final int READ_DELAY = 200;
@@ -103,7 +103,7 @@ public class Serial implements Closeable {
                 output.close();
                 input.close();
             } catch (IOException e) {
-                logger.log(Level.WARNING, "When flushing output before closing serial.", e);
+                LOGGER.log(Level.WARNING, "When flushing output before closing serial.", e);
             }
             port.closePort();
             port = null;
@@ -133,10 +133,10 @@ public class Serial implements Closeable {
                 }
             }
         } catch (InterruptedException e) {
-            logger.log(Level.FINE, "Read aborted");
+            LOGGER.log(Level.FINE, "Read aborted");
             throw e;
         }
-        logger.log(Level.FINE, "< ({0})", line);
+        LOGGER.log(Level.FINE, "< ({0})", line);
         return line.toString();
     }
 
@@ -159,10 +159,10 @@ public class Serial implements Closeable {
                 }
             }
         } catch (InterruptedException e) {
-            logger.log(Level.FINE, "Read aborted");
+            LOGGER.log(Level.FINE, "Read aborted");
             throw e;
         }
-        logger.log(Level.FINE, "< {0} byte(s)", offset);
+        LOGGER.log(Level.FINE, "< {0} byte(s)", offset);
         return offset;
     }
 
@@ -171,6 +171,6 @@ public class Serial implements Closeable {
             output.write(line.charAt(i));
         }
         output.flush();
-        logger.log(Level.FINE, "> ({0})", line);
+        LOGGER.log(Level.FINE, "> ({0})", line);
     }
 }

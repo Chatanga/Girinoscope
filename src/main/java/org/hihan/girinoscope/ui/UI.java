@@ -7,6 +7,8 @@ import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Image;
 import java.awt.event.ActionEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.BufferedWriter;
@@ -52,6 +54,7 @@ import javax.swing.JToolBar;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 import javax.swing.WindowConstants;
+import org.hihan.girinoscope.comm.Device;
 import org.hihan.girinoscope.comm.Girino;
 import org.hihan.girinoscope.comm.Girino.Parameter;
 import org.hihan.girinoscope.comm.Girino.PrescalerInfo;
@@ -65,14 +68,14 @@ import org.pushingpixels.substance.api.skin.SkinInfo;
 @SuppressWarnings("serial")
 public class UI extends JFrame {
 
-    private static final Logger logger = Logger.getLogger(UI.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(UI.class.getName());
 
     public static void main(String[] args) throws Exception {
         Set<String> flags = new HashSet<>(Arrays.asList(args));
         final boolean noLaf = flags.contains("-nolaf");
 
         Logger rootLogger = Logger.getLogger("org.hihan.girinoscope");
-        rootLogger.setLevel(Level.WARNING);
+        rootLogger.setLevel(Level.FINEST);
         ConsoleHandler handler = new ConsoleHandler();
         handler.setFormatter(new SimpleFormatter());
         handler.setLevel(Level.ALL);
@@ -96,16 +99,35 @@ public class UI extends JFrame {
         });
     }
 
-    // The Girino protocol interface.
+    private final Settings settings = new Settings();
+
+    /*
+     * The Girino protocol interface.
+     */
     private final Girino girino = new Girino();
 
-    // The currently selected serial port used to connect to the Girino hardware.
+    /*
+     * The selected device on which the Girino firmware is running (could be
+     * different from the one currently configured for the Girino).
+     */
+    private Device device;
+
+    /*
+     * The currently selected serial port used to connect to the Girino
+     * hardware.
+     */
     private SerialPort port;
 
-    // The edited Girino settings which could be different from the ones uploaded to the Girino hardware.
-    private Map<Parameter, Integer> parameters = Girino.getDefaultParameters(new EnumMap<Parameter, Integer>(Parameter.class));
+    /*
+     * The edited Girino settings (could be different from the ones uploaded to
+     * the Girino hardware).
+     */
+    private Map<Parameter, Integer> parameters;
 
-    // Helper class storing the attributes of the Y axis in order to create new instances.
+    /*
+     * Helper class storing the attributes of the Y axis in order to create new
+     * instances.
+     */
     private Axis.Builder yAxisBuilder = new Axis.Builder();
 
     private GraphPane graphPane;
@@ -116,10 +138,22 @@ public class UI extends JFrame {
 
     private DataAcquisitionTask currentDataAcquisitionTask;
 
+    private static class ByteArray {
+
+        private final byte[] bytes;
+
+        public ByteArray(byte[] bytes) {
+            this.bytes = bytes;
+        }
+    }
+
     /*
-     * All the communication with the Girino interface is done asynchrously through this class (save the disposal).
+     * All the communication with the Girino interface is done asynchrously
+     * through this class (save the disposal).
      */
-    private class DataAcquisitionTask extends SwingWorker<Void, byte[]> {
+    private class DataAcquisitionTask extends SwingWorker<Void, ByteArray> {
+
+        private Device frozenDevice;
 
         private SerialPort frozenPort;
 
@@ -142,6 +176,7 @@ public class UI extends JFrame {
 
         private void updateConnection() throws Exception {
             synchronized (UI.this) {
+                frozenDevice = device;
                 frozenPort = port;
                 frozenParameters.putAll(parameters);
             }
@@ -151,7 +186,7 @@ public class UI extends JFrame {
             Future<Void> connection = executor.submit(new Callable<Void>() {
                 @Override
                 public Void call() throws Exception {
-                    girino.connect(frozenPort, frozenParameters);
+                    girino.connect(frozenDevice, frozenPort, frozenParameters);
                     return null;
                 }
             });
@@ -175,7 +210,10 @@ public class UI extends JFrame {
                 synchronized (UI.this) {
                     parameters.put(Parameter.THRESHOLD, graphPane.getThreshold());
                     parameters.put(Parameter.WAIT_DURATION, graphPane.getWaitDuration());
-                    updateConnection = !calculateChanges(frozenParameters).isEmpty() || frozenPort != port;
+                    updateConnection
+                            = frozenDevice != device
+                            || frozenPort != port
+                            || !calculateChanges(frozenParameters).isEmpty();
                 }
                 if (updateConnection) {
                     if (acquisition != null) {
@@ -194,7 +232,7 @@ public class UI extends JFrame {
                     try {
                         byte[] buffer = acquisition.get(1, TimeUnit.SECONDS);
                         if (buffer != null) {
-                            publish(buffer);
+                            publish(new ByteArray(buffer));
                             acquisition = null;
                             terminated = false;
                         } else {
@@ -212,9 +250,9 @@ public class UI extends JFrame {
         }
 
         @Override
-        protected void process(List<byte[]> buffer) {
-            logger.log(Level.FINE, "{0} data buffer(s) to display.", buffer.size());
-            graphPane.setData(buffer.get(buffer.size() - 1));
+        protected void process(List<ByteArray> byteArrays) {
+            LOGGER.log(Level.FINE, "{0} data buffer(s) to display.", byteArrays.size());
+            graphPane.setData(byteArrays.get(byteArrays.size() - 1).bytes);
         }
 
         @Override
@@ -228,7 +266,7 @@ public class UI extends JFrame {
                 }
                 setStatus("blue", "Done acquiring data from %s.", frozenPort.getSystemPortName());
             } catch (ExecutionException e) {
-                logger.log(Level.WARNING, "When acquiring data.", e);
+                LOGGER.log(Level.WARNING, "When acquiring data.", e);
                 setStatus("red", e.getCause().getMessage());
             } catch (Exception e) {
                 setStatus("red", e.getMessage());
@@ -249,12 +287,12 @@ public class UI extends JFrame {
             fileChooser.setSelectedFile(new File("frame-" + format.format(new Date()) + ".csv"));
             if (fileChooser.showSaveDialog(UI.this) == JFileChooser.APPROVE_OPTION) {
                 File file = fileChooser.getSelectedFile();
-                byte[] data = graphPane.getData();
+                int[] value = graphPane.getValues();
                 BufferedWriter writer = null;
                 try {
                     writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file), "UTF-8"));
-                    for (int i = 0; i < data.length; ++i) {
-                        writer.write(String.format("%d;%d", i, data[i]));
+                    for (int i = 0; i < value.length; ++i) {
+                        writer.write(String.format("%d;%d", i, value[i]));
                         writer.newLine();
                     }
                 } catch (IOException e) {
@@ -306,6 +344,7 @@ public class UI extends JFrame {
             Axis.Builder builder = CustomAxisEditionDialog.edit(UI.this, yAxisBuilder);
             if (builder != null) {
                 yAxisBuilder = builder;
+                yAxisBuilder.save(settings, device.id + ".");
                 graphPane.setYCoordinateSystem(yAxisBuilder.build());
             }
         }
@@ -338,7 +377,7 @@ public class UI extends JFrame {
 
         setLayout(new BorderLayout());
 
-        graphPane = new GraphPane(parameters.get(Parameter.THRESHOLD), parameters.get(Parameter.WAIT_DURATION));
+        graphPane = new GraphPane();
         graphPane.setYCoordinateSystem(yAxisBuilder.build());
         graphPane.setPreferredSize(new Dimension(800, 600));
         add(graphPane, BorderLayout.CENTER);
@@ -359,9 +398,19 @@ public class UI extends JFrame {
             startAcquiringAction.setEnabled(false);
             setStatus("red", "No USB to serial adaptation port detected.");
         }
+
+        addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosed(WindowEvent e) {
+                settings.save();
+            }
+        });
     }
 
-    // It’s convenient, but not semantically correct, to shutdown the executor and disconnect Girino here.
+    /*
+     * It’s convenient, but not semantically correct, to shutdown the executor
+     * and disconnect Girino here.
+     */
     @Override
     public void dispose() {
         try {
@@ -372,11 +421,11 @@ public class UI extends JFrame {
             try {
                 executor.awaitTermination(2, TimeUnit.SECONDS);
             } catch (InterruptedException e) {
-                logger.log(Level.WARNING, "Serial line not responding.", e);
+                LOGGER.log(Level.WARNING, "Serial line not responding.", e);
             }
             girino.disconnect();
         } catch (IOException e) {
-            logger.log(Level.WARNING, "When disconnecting from Girino.", e);
+            LOGGER.log(Level.WARNING, "When disconnecting from Girino.", e);
         }
         super.dispose();
     }
@@ -389,10 +438,7 @@ public class UI extends JFrame {
         menuBar.add(fileMenu);
 
         JMenu girinoMenu = new JMenu("Girino");
-        girinoMenu.add(createSerialMenu());
-        girinoMenu.add(createPrescalerMenu());
-        girinoMenu.add(createTriggerEventMenu());
-        girinoMenu.add(createVoltageReferenceMenu());
+        createDynamicDeviceMenu(girinoMenu);
         menuBar.add(girinoMenu);
 
         JMenu displayMenu = new JMenu("Display");
@@ -408,6 +454,61 @@ public class UI extends JFrame {
         return menuBar;
     }
 
+    private void createDynamicDeviceMenu(final JMenu girinoMenu) {
+        Device selectedDevice = null;
+        String deviceName = settings.get("device", null);
+        for (final Device otherDevice : Device.DEVICES) {
+            if (Objects.equals(deviceName, otherDevice.id)) {
+                selectedDevice = otherDevice;
+                break;
+            }
+        }
+
+        final JMenu menu = new JMenu("Device");
+        ButtonGroup group = new ButtonGroup();
+        for (final Device newDevice : Device.DEVICES) {
+            Action setDevice = new AbstractAction(newDevice.description) {
+
+                @Override
+                public void actionPerformed(ActionEvent event) {
+                    synchronized (UI.this) {
+                        device = newDevice;
+                        parameters = newDevice.getDefaultParameters(new EnumMap<Parameter, Integer>(Parameter.class));
+                    }
+                    graphPane.setFrameFormat(device.frameFormat);
+                    graphPane.setThreshold(parameters.get(Parameter.THRESHOLD));
+                    graphPane.setWaitDuration(parameters.get(Parameter.WAIT_DURATION));
+
+                    yAxisBuilder.load(settings, device.id + ".");
+                    graphPane.setYCoordinateSystem(yAxisBuilder.build());
+
+                    girinoMenu.removeAll();
+                    girinoMenu.add(menu);
+                    girinoMenu.add(createSerialMenu());
+                    if (device.isUserConfigurable(Parameter.PRESCALER)) {
+                        girinoMenu.add(createPrescalerMenu(device));
+                    }
+                    if (device.isUserConfigurable(Parameter.TRIGGER_EVENT)) {
+                        girinoMenu.add(createTriggerEventMenu());
+                    }
+                    if (device.isUserConfigurable(Parameter.VOLTAGE_REFERENCE)) {
+                        girinoMenu.add(createVoltageReferenceMenu());
+                    }
+
+                    settings.put("device", device.id);
+                }
+            };
+            AbstractButton button = new JCheckBoxMenuItem(setDevice);
+            if (selectedDevice == null && device == null || newDevice == selectedDevice) {
+                button.doClick();
+            }
+
+            group.add(button);
+
+            menu.add(button);
+        }
+    }
+
     private JMenu createSerialMenu() {
         JMenu menu = new JMenu("Serial port");
         ButtonGroup group = new ButtonGroup();
@@ -416,11 +517,11 @@ public class UI extends JFrame {
 
                 @Override
                 public void actionPerformed(ActionEvent event) {
-                    UI.this.port = newPort;
+                    port = newPort;
                 }
             };
             AbstractButton button = new JCheckBoxMenuItem(setSerialPort);
-            if (UI.this.port == null) {
+            if (port == null) {
                 button.doClick();
             }
             group.add(button);
@@ -429,10 +530,10 @@ public class UI extends JFrame {
         return menu;
     }
 
-    private JMenu createPrescalerMenu() {
+    private JMenu createPrescalerMenu(Device potentialDevice) {
         JMenu menu = new JMenu("Acquisition rate / Time frame");
         ButtonGroup group = new ButtonGroup();
-        for (final PrescalerInfo info : PrescalerInfo.values()) {
+        for (final PrescalerInfo info : potentialDevice.prescalerInfoValues) {
             Action setPrescaler = new AbstractAction(info.description) {
 
                 @Override
@@ -507,22 +608,29 @@ public class UI extends JFrame {
     }
 
     private JMenu createThemeMenu() {
+        String selectedLafClassName = settings.get("theme", null);
+
         JMenu menu = new JMenu("Theme");
         ButtonGroup group = new ButtonGroup();
 
         for (final Map.Entry<String, SkinInfo> entry : SubstanceLookAndFeel.getAllSkins().entrySet()) {
+            final String lafClassName = entry.getValue().getClassName();
             Action setLnF = new AbstractAction(entry.getValue().getDisplayName()) {
 
                 @Override
                 public void actionPerformed(ActionEvent event) {
                     try {
-                        SubstanceLookAndFeel.setSkin(entry.getValue().getClassName());
+                        SubstanceLookAndFeel.setSkin(lafClassName);
+                        settings.put("theme", lafClassName);
                     } catch (Exception e) {
                         setStatus("red", "Failed to load skin {}.", entry.getValue().getDisplayName());
                     }
                 }
             };
             AbstractButton button = new JCheckBoxMenuItem(setLnF);
+            if (Objects.equals(selectedLafClassName, lafClassName)) {
+                button.doClick();
+            }
             group.add(button);
             menu.add(button);
         }

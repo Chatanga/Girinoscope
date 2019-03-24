@@ -4,8 +4,6 @@ import com.fazecast.jSerialComm.SerialPort;
 import java.io.IOException;
 import java.util.AbstractMap;
 import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import org.jetbrains.annotations.Contract;
@@ -16,20 +14,18 @@ public class Girino {
 
     public enum Parameter {
 
-        BUFFER_SIZE(null, true), //
-        BAUD_RATE(null, true), //
-        PRESCALER("p", true), //
-        VOLTAGE_REFERENCE("r", false), //
-        TRIGGER_EVENT("e", true), //
-        WAIT_DURATION("w", true), //
-        THRESHOLD("t", true);
+        BUFFER_SIZE(null),
+        BAUD_RATE(null),
+        PRESCALER("p"),
+        VOLTAGE_REFERENCE("r"),
+        TRIGGER_EVENT("e"),
+        WAIT_DURATION("w"),
+        THRESHOLD("t");
 
         private final String command;
-        private final boolean readable;
 
-        Parameter(String command, boolean readable) {
+        Parameter(String command) {
             this.command = command;
-            this.readable = readable;
         }
 
         public @NotNull
@@ -57,9 +53,9 @@ public class Girino {
         }
 
         @NotNull
-        private static Map.Entry<Parameter, Integer> read(Serial serial) throws IOException, InterruptedException {
+        private static Map.Entry<Parameter, Integer> read(Serial serial, Device device) throws IOException, InterruptedException {
             String data = serial.readLine();
-            if (READY_MESSAGE.equals(data)) {
+            if (device.readyMessage.equals(data)) {
                 data = serial.readLine();
             }
             String[] items = data.split(":");
@@ -100,22 +96,19 @@ public class Girino {
         public final boolean tooFast;
         public final boolean reallyTooFast;
 
-        private PrescalerInfo(int n) {
-            value = (int) Math.pow(2, n);
-            double clockCycleCountPerConversion = 13;
-            frequency = BASE_FREQUENCY / value / clockCycleCountPerConversion;
-            timeframe = FRAME_SIZE / frequency;
-            tooFast = n < 5;
-            reallyTooFast = n < 3;
-            description = String.format("%.1f kHz / %.1f ms", frequency / 1000, timeframe * 1000);
-        }
-
-        public static List<PrescalerInfo> values() {
-            List<PrescalerInfo> infos = new LinkedList<>();
-            for (int i = 2; i < 8; ++i) {
-                infos.add(new PrescalerInfo(i));
-            }
-            return infos;
+        public PrescalerInfo(
+                int value,
+                double frequency,
+                double timeframe,
+                String description,
+                boolean tooFast,
+                boolean reallyTooFast) {
+            this.value = value;
+            this.frequency = frequency;
+            this.timeframe = timeframe;
+            this.description = description;
+            this.tooFast = tooFast;
+            this.reallyTooFast = reallyTooFast;
         }
     }
 
@@ -154,23 +147,6 @@ public class Girino {
         }
     }
 
-    /**
-     * The size of a data frame.
-     */
-    public static final int FRAME_SIZE = 1280;
-
-    /**
-     * The Arduino clock frequency in milliseconds.
-     */
-    private static final int BASE_FREQUENCY = 16_000_000;
-
-    /**
-     * Milliseconds to wait once a new connection has been etablished.
-     */
-    private static final int SETUP_DELAY_ON_RESET = 2000;
-
-    private static final String READY_MESSAGE = "Girino ready";
-
     private static final String START_ACQUIRING_COMMAND = "s";
 
     private static final String STOP_ACQUIRING_COMMAND = "S";
@@ -181,17 +157,9 @@ public class Girino {
 
     private SerialPort port;
 
-    private final Map<Parameter, Integer> parameters = new HashMap<>();
+    private Device device = Device.createClassic();
 
-    public static Map<Parameter, Integer> getDefaultParameters(Map<Parameter, Integer> parameters) {
-        parameters.put(Parameter.BUFFER_SIZE, FRAME_SIZE);
-        parameters.put(Parameter.PRESCALER, 32);
-        parameters.put(Parameter.VOLTAGE_REFERENCE, VoltageReference.AVCC.value);
-        parameters.put(Parameter.TRIGGER_EVENT, TriggerEventMode.TOGGLE.value);
-        parameters.put(Parameter.WAIT_DURATION, FRAME_SIZE - 32);
-        parameters.put(Parameter.THRESHOLD, 150);
-        return parameters;
-    }
+    private final Map<Parameter, Integer> parameters = new HashMap<>();
 
     @Contract("null -> fail")
     private void connect(SerialPort newPort) throws IOException, InterruptedException {
@@ -210,12 +178,12 @@ public class Girino {
                      * delay here is to give some time to the controller to set
                      * itself up.
                      */
-                    Thread.sleep(SETUP_DELAY_ON_RESET);
+                    Thread.sleep(device.setupDelayOnReset);
 
                     String data;
                     do {
                         data = serial.readLine();
-                    } while (!data.endsWith(READY_MESSAGE));
+                    } while (!data.endsWith(device.readyMessage));
                 } catch (InterruptedException e) {
                     disconnect();
                 }
@@ -227,8 +195,9 @@ public class Girino {
         }
     }
 
-    public void connect(SerialPort newPort, Map<Parameter, Integer> newParameters)
+    public void connect(Device device, SerialPort newPort, Map<Parameter, Integer> newParameters)
             throws Exception {
+        this.device = Objects.requireNonNull(device);
         connect(newPort);
         if (serial != null) {
             applyParameters(newParameters);
@@ -244,18 +213,13 @@ public class Girino {
 
     private void readParameters() throws IOException, InterruptedException {
         if (serial != null) {
-            int readableParameterCount = 0;
-            for (Parameter parameter : Parameter.values()) {
-                if (parameter.readable) {
-                    ++readableParameterCount;
-                }
-            }
-
             serial.writeLine(DUMP_COMMAND);
-            for (int i = 0; i < readableParameterCount; ++i) {
-                Map.Entry<Parameter, Integer> entry = Parameter.read(serial);
-                if (entry.getKey() != null) {
-                    parameters.put(entry.getKey(), entry.getValue());
+            for (Parameter parameter : Parameter.values()) {
+                if (device.isReadable(parameter)) {
+                    Map.Entry<Parameter, Integer> entry = Parameter.read(serial, device);
+                    if (entry.getKey() != null) {
+                        parameters.put(entry.getKey(), entry.getValue());
+                    }
                 }
             }
         } else {
@@ -276,11 +240,13 @@ public class Girino {
 
                 // We only update modified parameters.
                 if (!Objects.equals(newValue, parameters.get(parameter))) {
-                    int returnedValue = parameter.apply(serial, newValue);
-                    parameters.put(parameter, returnedValue);
-                    if (!Objects.equals(newValue, parameters.get(parameter))) {
-                        throw new IOException("Change has been rejected for parameter "
-                                + parameter.getDescription() + ": " + newValue + " =/= " + returnedValue);
+                    if (device.isWritable(parameter)) {
+                        int returnedValue = parameter.apply(serial, newValue);
+                        parameters.put(parameter, returnedValue);
+                        if (!Objects.equals(newValue, parameters.get(parameter))) {
+                            throw new IOException("Change has been rejected for parameter "
+                                    + parameter.getDescription() + ": " + newValue + " =/= " + returnedValue);
+                        }
                     }
                 }
             }
@@ -297,7 +263,7 @@ public class Girino {
              * catch a lot of the signal before the trigger if it happens too fast.
              */
             try {
-                byte[] buffer = new byte[FRAME_SIZE];
+                byte[] buffer = new byte[device.frameFormat.sampleCount * device.frameFormat.sampleSizeInBit];
                 int size = serial.readBytes(buffer);
                 return size == buffer.length ? buffer : null;
             } finally {

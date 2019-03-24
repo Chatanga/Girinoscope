@@ -11,13 +11,35 @@ public class Axis {
 
     public static class Builder {
 
-        private double startValue = -2.5;
+        private static final double DEFAULT_START_VALUE = -2.5;
 
-        private double endValue = 2.5;
+        private static final double DEFAULT_END_VALUE = 2.5;
 
-        private Double increment = 0.5;
+        private static final double DEFAULT_INCREMENT = 0.5;
 
-        private String format = "#,##0.00 V";
+        private static final String DEFAULT_FORMAT = "#,##0.00 V";
+
+        private double startValue = DEFAULT_START_VALUE;
+
+        private double endValue = DEFAULT_END_VALUE;
+
+        private Double increment = DEFAULT_INCREMENT;
+
+        private String format = DEFAULT_FORMAT;
+
+        public void load(Settings settings, String prefix) {
+            startValue = settings.get(prefix + "startValue", DEFAULT_START_VALUE);
+            endValue = settings.get(prefix + "endValue", DEFAULT_END_VALUE);
+            increment = settings.get(prefix + "increment", DEFAULT_INCREMENT);
+            format = settings.get(prefix + "format", DEFAULT_FORMAT);
+        }
+
+        public void save(Settings settings, String prefix) {
+            settings.put(prefix + "startValue", startValue);
+            settings.put(prefix + "endValue", endValue);
+            settings.put(prefix + "increment", increment);
+            settings.put(prefix + "format", format);
+        }
 
         public double getStartValue() {
             return startValue;
@@ -36,7 +58,11 @@ public class Axis {
         }
 
         public double getIncrement() {
-            return increment != null ? increment : chooseIncrement(startValue, endValue);
+            if (increment != null) {
+                return increment;
+            } else {
+                return chooseIncrement(startValue, endValue);
+            }
         }
 
         public void setIncrement(double increment) {

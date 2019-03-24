@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.0-SNAPSHOT] (unstable)
+### Added
+- Support of multiple (hardcoded) devices (Arduino + STM32duino).
+- Various settings (device, signal interpretation and theme) are now persisted.
+
 ## [1.2.2]
 ### Added
 - A nicer Look and Feel and a logo.

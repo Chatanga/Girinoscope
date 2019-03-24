@@ -13,10 +13,10 @@ public class AboutDialog extends JDialog {
 
     public AboutDialog(JFrame owner) {
         super(owner, true);
-        setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
+        super.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
 
-        setLayout(new BorderLayout());
-        setBackground(Color.WHITE);
+        super.setLayout(new BorderLayout());
+        super.setBackground(Color.WHITE);
 
         try {
             HtmlPane htmlPane = new HtmlPane(AboutDialog.class.getResource("about.html"));
@@ -27,10 +27,10 @@ public class AboutDialog extends JDialog {
             throw new RuntimeException(e);
         }
 
-        pack();
-        setLocationRelativeTo(owner);
-        setResizable(false);
+        super.pack();
+        super.setLocationRelativeTo(owner);
+        super.setResizable(false);
 
-        DialogHelper.installEscapeCloseOperation(this);
+        DialogHelper.installEscapeCloseOperation(AboutDialog.this);
     }
 }
