@@ -89,7 +89,7 @@ public class Device {
     public static Device createStm32f103mm() {
 
         long baseFrequency = 72_000_000;
-        FrameFormat frameFormat = new FrameFormat(1280, 2, true, 4096);
+        FrameFormat frameFormat = new FrameFormat(1280, 2, true, 4095);
 
         Map<Girino.Parameter, SupportLevel> supports = new HashMap<>();
         supports.put(BUFFER_SIZE, SupportLevel.READ_ONLY);

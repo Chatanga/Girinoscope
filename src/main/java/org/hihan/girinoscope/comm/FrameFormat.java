@@ -21,7 +21,7 @@ public final class FrameFormat {
         if (sampleCount < 1 || sampleCount > Integer.MAX_VALUE / sampleSizeInBit) {
             throw new IllegalArgumentException("width: " + sampleCount);
         }
-        if (sampleMaxValue < 0 || sampleMaxValue > Math.pow(256, sampleSizeInBit) || sampleMaxValue > Integer.MAX_VALUE) {
+        if (sampleMaxValue < 0 || sampleMaxValue > Math.pow(256, sampleSizeInBit) - 1 || sampleMaxValue > Integer.MAX_VALUE) {
             throw new IllegalArgumentException("maxValue: " + sampleMaxValue);
         }
 
@@ -31,7 +31,7 @@ public final class FrameFormat {
         this.sampleMaxValue = sampleMaxValue;
     }
 
-    public int[] readValues(byte[] data) {
+    public int[] readValues(byte... data) {
         List<Integer> byteOffsets = new ArrayList<>(sampleSizeInBit);
         for (int i = 0; i < sampleSizeInBit; ++i) {
             byteOffsets.add(i * 8);
@@ -40,11 +40,11 @@ public final class FrameFormat {
             Collections.reverse(byteOffsets);
         }
 
-        int[] values = new int[sampleCount];
-        for (int i = 0; i < data.length; ++i) {
+        int[] values = new int[data.length / sampleSizeInBit];
+        for (int i = 0; i < values.length; ++i) {
             int value = 0;
             for (int j = 0; j < sampleSizeInBit; ++j) {
-                value += (data[i] & 0xFFFF) << byteOffsets.get(j);
+                value += (data[i * sampleSizeInBit + j] & 0xFF) << byteOffsets.get(j);
             }
             values[i] = value;
         }

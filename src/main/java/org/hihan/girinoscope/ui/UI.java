@@ -75,11 +75,13 @@ public class UI extends JFrame {
         final boolean noLaf = flags.contains("-nolaf");
 
         Logger rootLogger = Logger.getLogger("org.hihan.girinoscope");
-        rootLogger.setLevel(Level.FINEST);
-        ConsoleHandler handler = new ConsoleHandler();
-        handler.setFormatter(new SimpleFormatter());
-        handler.setLevel(Level.ALL);
-        rootLogger.addHandler(handler);
+        rootLogger.setLevel(Level.INFO);
+        if (false) {
+            ConsoleHandler handler = new ConsoleHandler();
+            handler.setFormatter(new SimpleFormatter());
+            handler.setLevel(Level.ALL);
+            rootLogger.addHandler(handler);
+        }
 
         JFrame.setDefaultLookAndFeelDecorated(true);
         JDialog.setDefaultLookAndFeelDecorated(true);

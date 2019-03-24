@@ -50,9 +50,9 @@ public class GraphPane extends JPanel {
 
     private FrameFormat frameFormat;
 
-    private int vMax;
-
     private int uMax;
+
+    private int vMax;
 
     private byte[] data;
 
@@ -167,8 +167,8 @@ public class GraphPane extends JPanel {
 
     public void setFrameFormat(FrameFormat frameFormat) {
         this.frameFormat = frameFormat;
-        vMax = frameFormat.sampleMaxValue;
         uMax = frameFormat.sampleCount - 1;
+        vMax = frameFormat.sampleMaxValue;
     }
 
     public void setData(byte[] data) {
@@ -288,6 +288,9 @@ public class GraphPane extends JPanel {
         int u = uMax;
         Point previousPoint = null;
         for (int value : getValues()) {
+            if (value < 0 || value > frameFormat.sampleMaxValue) {
+                System.err.println("value -> " + value);
+            }
             Point point = toGraphArea(u--, value);
             if (previousPoint != null) {
                 g.drawLine(previousPoint.x, previousPoint.y, point.x, point.y);
