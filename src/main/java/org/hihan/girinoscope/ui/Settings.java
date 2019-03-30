@@ -118,7 +118,8 @@ public class Settings {
     }
 
     public String get(String name, String defaultValue) {
-        return (String) properties.getOrDefault(name, defaultValue);
+        String value = (String) properties.get(name);
+        return value != null ? value : defaultValue;
     }
 
     public int get(String name, int defaultValue) {
