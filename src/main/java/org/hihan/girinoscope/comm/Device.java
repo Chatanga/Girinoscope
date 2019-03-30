@@ -28,12 +28,7 @@ public class Device {
         /**
          * Full support.
          */
-        READ_WRITE,
-        /**
-         * Dump a random value for compatibility reason because the dump command
-         * as a fixed size, but do not use it.
-         */
-        FAKE
+        READ_WRITE
     }
 
     public static final Device[] DEVICES = {createClassic(), createStm32f103mm()};
@@ -95,7 +90,7 @@ public class Device {
         supports.put(BUFFER_SIZE, SupportLevel.READ_ONLY);
         supports.put(BAUD_RATE, SupportLevel.READ_ONLY);
         supports.put(PRESCALER, SupportLevel.READ_WRITE);
-        supports.put(VOLTAGE_REFERENCE, SupportLevel.FAKE);
+        supports.put(VOLTAGE_REFERENCE, SupportLevel.NONE);
         supports.put(TRIGGER_EVENT, SupportLevel.READ_WRITE);
         supports.put(WAIT_DURATION, SupportLevel.READ_WRITE);
         supports.put(THRESHOLD, SupportLevel.READ_WRITE);
@@ -103,7 +98,7 @@ public class Device {
         Map<Girino.Parameter, Integer> parameters = new HashMap<>();
         parameters.put(BUFFER_SIZE, frameFormat.sampleCount * frameFormat.sampleSizeInBit);
         parameters.put(PRESCALER, 32);
-        parameters.put(VOLTAGE_REFERENCE, 0);
+        //parameters.put(VOLTAGE_REFERENCE, 0);
         parameters.put(TRIGGER_EVENT, Girino.TriggerEventMode.TOGGLE.value);
         parameters.put(WAIT_DURATION, frameFormat.sampleCount - 32);
         parameters.put(THRESHOLD, 150);
@@ -184,7 +179,6 @@ public class Device {
         SupportLevel supportLevel = parameterSupportLevels.get(parameter);
         if (supportLevel != null) {
             switch (supportLevel) {
-                case FAKE:
                 case NONE:
                 case READ_ONLY:
                     return false;
@@ -206,7 +200,6 @@ public class Device {
                 case NONE:
                 case WRITE_ONLY:
                     return false;
-                case FAKE:
                 case READ_WRITE:
                 case READ_ONLY:
                     return true;
@@ -225,7 +218,6 @@ public class Device {
                 case NONE:
                 case READ_ONLY:
                     return false;
-                case FAKE:
                 case WRITE_ONLY:
                 case READ_WRITE:
                     return true;
