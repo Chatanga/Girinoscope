@@ -6,9 +6,6 @@ import java.util.AbstractMap;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import org.jetbrains.annotations.Contract;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 public class Girino {
 
@@ -28,8 +25,7 @@ public class Girino {
             this.command = command;
         }
 
-        public @NotNull
-        String getIdentifier() {
+        public String getIdentifier() {
             if (this == WAIT_DURATION) {
                 return "waitDuration";
             } else {
@@ -37,12 +33,10 @@ public class Girino {
             }
         }
 
-        @NotNull
         public String getDescription() {
             return name().charAt(0) + name().substring(1).toLowerCase().replace('_', ' ');
         }
 
-        @Nullable
         public static Parameter findByDescription(String description) {
             for (Parameter parameter : values()) {
                 if (parameter.getDescription().equals(description)) {
@@ -52,10 +46,9 @@ public class Girino {
             return null;
         }
 
-        @NotNull
         private static Map.Entry<Parameter, Integer> read(Serial serial, Device device) throws IOException, InterruptedException {
             String data = serial.readLine();
-            if (device.readyMessage.equals(data)) {
+            if (device.getReadyMessage().equals(data)) {
                 data = serial.readLine();
             }
             String[] items = data.split(":");
@@ -92,7 +85,6 @@ public class Girino {
         public final int value;
         public final double frequency;
         public final double timeframe;
-        public final String description;
         public final boolean tooFast;
         public final boolean reallyTooFast;
 
@@ -100,13 +92,11 @@ public class Girino {
                 int value,
                 double frequency,
                 double timeframe,
-                String description,
                 boolean tooFast,
                 boolean reallyTooFast) {
             this.value = value;
             this.frequency = frequency;
             this.timeframe = timeframe;
-            this.description = description;
             this.tooFast = tooFast;
             this.reallyTooFast = reallyTooFast;
         }
@@ -161,7 +151,6 @@ public class Girino {
 
     private final Map<Parameter, Integer> parameters = new HashMap<>();
 
-    @Contract("null -> fail")
     private void connect(SerialPort newPort) throws IOException, InterruptedException {
         if (newPort != null) {
             if (serial == null || !Objects.equals(port, newPort)) {
@@ -178,12 +167,12 @@ public class Girino {
                      * delay here is to give some time to the controller to set
                      * itself up.
                      */
-                    Thread.sleep(device.setupDelayOnReset);
+                    Thread.sleep(device.getSetupDelayOnReset());
 
                     String data;
                     do {
                         data = serial.readLine();
-                    } while (!data.endsWith(device.readyMessage));
+                    } while (!data.endsWith(device.getReadyMessage()));
                 } catch (InterruptedException e) {
                     disconnect();
                 }
@@ -263,7 +252,8 @@ public class Girino {
              * catch a lot of the signal before the trigger if it happens too fast.
              */
             try {
-                byte[] buffer = new byte[device.frameFormat.sampleCount * device.frameFormat.sampleSizeInBit];
+                FrameFormat frameFormat = device.getFrameFormat();
+                byte[] buffer = new byte[frameFormat.sampleCount * frameFormat.sampleSizeInBit];
                 int size = serial.readBytes(buffer);
                 return size == buffer.length ? buffer : null;
             } finally {

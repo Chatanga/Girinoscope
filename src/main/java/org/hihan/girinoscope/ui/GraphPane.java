@@ -19,7 +19,6 @@ import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 import org.hihan.girinoscope.comm.FrameFormat;
 import org.hihan.girinoscope.ui.Axis.GraphLabel;
-import org.jetbrains.annotations.NotNull;
 
 @SuppressWarnings("serial")
 public class GraphPane extends JPanel {
@@ -336,14 +335,12 @@ public class GraphPane extends JPanel {
         }
     }
 
-    @NotNull
     private Point toGraphArea(int u, int v) {
         int x = Math.round((uMax - u) * graphArea.width / uMax + graphArea.x);
         int y = Math.round((vMax - v) * graphArea.height / vMax + graphArea.y);
         return new Point(x, y);
     }
 
-    @NotNull
     private Point toData(int x, int y) {
         int u = Math.round(uMax - (x - graphArea.x) * uMax / graphArea.width);
         int v = Math.round(vMax - (y - graphArea.y) * vMax / graphArea.height);

@@ -21,8 +21,6 @@ import javax.swing.text.Document;
 import javax.swing.text.html.HTMLDocument;
 import javax.swing.text.html.HTMLEditorKit;
 import javax.swing.text.html.StyleSheet;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 @SuppressWarnings("serial")
 public class HtmlPane extends JEditorPane {
@@ -37,7 +35,6 @@ public class HtmlPane extends JEditorPane {
                 color.getTransparency());
     }
 
-    @NotNull
     private static String loadContent(URL url) throws IOException {
         try (InputStream input = url.openStream()) {
             BufferedReader reader = new BufferedReader(new InputStreamReader(input));
@@ -92,7 +89,6 @@ public class HtmlPane extends JEditorPane {
         return Objects.requireNonNull(getAttribute((AttributeSet) getAttribute(attributes, "a"), "href")).toString();
     }
 
-    @Nullable
     private static Object getAttribute(AttributeSet attributes, String name) {
         for (Enumeration<?> enumeration = attributes.getAttributeNames(); enumeration.hasMoreElements();) {
             Object nameKey = enumeration.nextElement();

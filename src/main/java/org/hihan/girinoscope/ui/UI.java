@@ -18,16 +18,13 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.EnumMap;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -53,6 +50,8 @@ import javax.swing.JMenuBar;
 import javax.swing.JToolBar;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
+import javax.swing.UIManager;
+import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.WindowConstants;
 import org.hihan.girinoscope.comm.Device;
 import org.hihan.girinoscope.comm.Girino;
@@ -61,9 +60,6 @@ import org.hihan.girinoscope.comm.Girino.PrescalerInfo;
 import org.hihan.girinoscope.comm.Girino.TriggerEventMode;
 import org.hihan.girinoscope.comm.Girino.VoltageReference;
 import org.hihan.girinoscope.comm.Serial;
-import org.pushingpixels.substance.api.SubstanceLookAndFeel;
-import org.pushingpixels.substance.api.skin.CeruleanSkin;
-import org.pushingpixels.substance.api.skin.SkinInfo;
 
 @SuppressWarnings("serial")
 public class UI extends JFrame {
@@ -71,9 +67,6 @@ public class UI extends JFrame {
     private static final Logger LOGGER = Logger.getLogger(UI.class.getName());
 
     public static void main(String[] args) throws Exception {
-        Set<String> flags = new HashSet<>(Arrays.asList(args));
-        final boolean noLaf = flags.contains("-nolaf");
-
         Logger rootLogger = Logger.getLogger("org.hihan.girinoscope");
         rootLogger.setLevel(Level.INFO);
         if (false) {
@@ -85,13 +78,24 @@ public class UI extends JFrame {
 
         JFrame.setDefaultLookAndFeelDecorated(true);
         JDialog.setDefaultLookAndFeelDecorated(true);
+        try {
+            String[] allLafs = {
+                "javax.swing.plaf.nimbus.NimbusLookAndFeel",
+                "com.sun.java.swing.plaf.nimbus.NimbusLookAndFeel",
+                UIManager.getSystemLookAndFeelClassName()
+            };
+            for (String laf : allLafs) {
+                if (setLookAndFeelIfAvailable(laf)) {
+                    break;
+                }
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "When setting the look and feel.", e);
+        }
 
         SwingUtilities.invokeAndWait(new Runnable() {
             @Override
             public void run() {
-                if (!noLaf) {
-                    SubstanceLookAndFeel.setSkin(new CeruleanSkin());
-                }
                 JFrame frame = new UI();
                 frame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
                 frame.pack();
@@ -99,6 +103,20 @@ public class UI extends JFrame {
                 frame.setVisible(true);
             }
         });
+    }
+
+    private static boolean setLookAndFeelIfAvailable(String className) throws InstantiationException,
+            IllegalAccessException, UnsupportedLookAndFeelException {
+        try {
+            if (UI.class.getClassLoader().loadClass(className) != null) {
+                UIManager.setLookAndFeel(className);
+                return true;
+            } else {
+                return false;
+            }
+        } catch (ClassNotFoundException e) {
+            return false;
+        }
     }
 
     private final Settings settings = new Settings();
@@ -446,7 +464,6 @@ public class UI extends JFrame {
         JMenu displayMenu = new JMenu("Display");
         displayMenu.add(setDisplayedSignalReferentia);
         displayMenu.add(createDataStrokeWidthMenu());
-        displayMenu.add(createThemeMenu());
         menuBar.add(displayMenu);
 
         JMenu helpMenu = new JMenu("Help");
@@ -477,7 +494,7 @@ public class UI extends JFrame {
                         device = newDevice;
                         parameters = newDevice.getDefaultParameters(new EnumMap<Parameter, Integer>(Parameter.class));
                     }
-                    graphPane.setFrameFormat(device.frameFormat);
+                    graphPane.setFrameFormat(device.getFrameFormat());
                     graphPane.setThreshold(parameters.get(Parameter.THRESHOLD));
                     graphPane.setWaitDuration(parameters.get(Parameter.WAIT_DURATION));
 
@@ -535,8 +552,8 @@ public class UI extends JFrame {
     private JMenu createPrescalerMenu(Device potentialDevice) {
         JMenu menu = new JMenu("Acquisition rate / Time frame");
         ButtonGroup group = new ButtonGroup();
-        for (final PrescalerInfo info : potentialDevice.prescalerInfoValues) {
-            Action setPrescaler = new AbstractAction(info.description) {
+        for (final PrescalerInfo info : potentialDevice.getPrescalerInfoValues()) {
+            Action setPrescaler = new AbstractAction(format(info)) {
 
                 @Override
                 public void actionPerformed(ActionEvent event) {
@@ -561,6 +578,29 @@ public class UI extends JFrame {
             menu.add(button);
         }
         return menu;
+    }
+
+    private static String format(PrescalerInfo info) {
+
+        String[] frequencyUnits = {"kHz", "MHz", "GHz"};
+        double frequency = info.frequency;
+        int frequencyUnitIndex = 0;
+        while (frequencyUnitIndex + 1 < frequencyUnits.length && frequency > 1000) {
+            ++frequencyUnitIndex;
+            frequency /= 1000;
+        }
+
+        String[] timeUnits = {"s", "ms", "μs", "ns"};
+        double timeframe = info.timeframe;
+        int timeUnitIndex = 0;
+        while (timeUnitIndex + 1 < timeUnits.length && timeframe < 1) {
+            ++timeUnitIndex;
+            timeframe *= 1000;
+        }
+
+        return String.format("%.1f %s / %.1f %s",
+                frequency, frequencyUnits[frequencyUnitIndex],
+                timeframe, timeUnits[timeUnitIndex]);
     }
 
     private JMenu createTriggerEventMenu() {
@@ -601,36 +641,6 @@ public class UI extends JFrame {
             };
             AbstractButton button = new JCheckBoxMenuItem(setPrescaler);
             if (reference.value == parameters.get(Parameter.VOLTAGE_REFERENCE)) {
-                button.doClick();
-            }
-            group.add(button);
-            menu.add(button);
-        }
-        return menu;
-    }
-
-    private JMenu createThemeMenu() {
-        String selectedLafClassName = settings.get("theme", null);
-
-        JMenu menu = new JMenu("Theme");
-        ButtonGroup group = new ButtonGroup();
-
-        for (final Map.Entry<String, SkinInfo> entry : SubstanceLookAndFeel.getAllSkins().entrySet()) {
-            final String lafClassName = entry.getValue().getClassName();
-            Action setLnF = new AbstractAction(entry.getValue().getDisplayName()) {
-
-                @Override
-                public void actionPerformed(ActionEvent event) {
-                    try {
-                        SubstanceLookAndFeel.setSkin(lafClassName);
-                        settings.put("theme", lafClassName);
-                    } catch (Exception e) {
-                        setStatus("red", "Failed to load skin {}.", entry.getValue().getDisplayName());
-                    }
-                }
-            };
-            AbstractButton button = new JCheckBoxMenuItem(setLnF);
-            if (Objects.equals(selectedLafClassName, lafClassName)) {
                 button.doClick();
             }
             group.add(button);

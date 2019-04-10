@@ -64,14 +64,12 @@ public class Device {
             double timeframe = frameFormat.sampleCount / frequency;
             boolean tooFast = n < 5;
             boolean reallyTooFast = n < 3;
-            String description = String.format("%.1f kHz / %.1f ms", frequency / 1000, timeframe * 1000);
-            infos.add(new Girino.PrescalerInfo(value, frequency, timeframe, description, tooFast, reallyTooFast));
+            infos.add(new Girino.PrescalerInfo(value, frequency, timeframe, tooFast, reallyTooFast));
         }
 
         return new Device(
                 "classic",
                 "Arduino classic",
-                baseFrequency,
                 2000,
                 "Girino ready",
                 frameFormat,
@@ -83,7 +81,6 @@ public class Device {
     // Matching firmware: https://github.com/ag88/GirinoSTM32F103duino
     public static Device createStm32f103mm() {
 
-        long baseFrequency = 72_000_000;
         FrameFormat frameFormat = new FrameFormat(1280, 2, true, 4095);
 
         Map<Girino.Parameter, SupportLevel> supports = new HashMap<>();
@@ -97,28 +94,25 @@ public class Device {
 
         Map<Girino.Parameter, Integer> parameters = new HashMap<>();
         parameters.put(BUFFER_SIZE, frameFormat.sampleCount * frameFormat.sampleSizeInBit);
-        parameters.put(PRESCALER, 32);
-        //parameters.put(VOLTAGE_REFERENCE, 0);
+        parameters.put(PRESCALER, 128);
         parameters.put(TRIGGER_EVENT, Girino.TriggerEventMode.TOGGLE.value);
         parameters.put(WAIT_DURATION, frameFormat.sampleCount - 32);
         parameters.put(THRESHOLD, 150);
 
         List<Girino.PrescalerInfo> infos = new LinkedList<>();
-        for (int n = 2; n < 8; ++n) {
-            int value = (int) Math.pow(2, n);
-            double clockCycleCountPerConversion = 13; // TODO To be calibrated.
-            double frequency = baseFrequency / value / clockCycleCountPerConversion;
-            double timeframe = frameFormat.sampleCount / frequency;
-            String description = String.format("%.1f kHz / %.1f ms", frequency / 1000, timeframe * 1000);
-            infos.add(new Girino.PrescalerInfo(value, frequency, timeframe, description, false, false));
+        double[] frequencies = {857_000, 600_000, 500_000, 50_000, 5_000, 500, 50};
+        for (double frequency : frequencies) {
+            int pseudoPrescaler = (int) (16_000_000 / frequency / 13);
+            double adjustedFrequency = 16_000_000.0 / pseudoPrescaler / 13.0;
+            double timeframe = frameFormat.sampleCount / adjustedFrequency;
+            infos.add(new Girino.PrescalerInfo(pseudoPrescaler, adjustedFrequency, timeframe, false, false));
         }
 
         return new Device(
                 "stm32f103mm",
                 "STM32duino (experimental)",
-                baseFrequency,
                 2000,
-                "Girino stm32f103mm ready", // TODO Add a version?
+                "Girino stm32f103mm ready",
                 frameFormat,
                 infos,
                 supports,
@@ -130,29 +124,23 @@ public class Device {
     public final String description;
 
     /**
-     * The Arduino clock frequency in milliseconds.
-     */
-    public final long baseFrequency;
-
-    /**
      * Milliseconds to wait once a new connection has been etablished.
      */
-    public final long setupDelayOnReset;
+    private final long setupDelayOnReset;
 
-    public final String readyMessage;
+    private final String readyMessage;
 
-    public final FrameFormat frameFormat;
+    private final FrameFormat frameFormat;
 
-    public final List<Girino.PrescalerInfo> prescalerInfoValues;
+    private final List<Girino.PrescalerInfo> prescalerInfoValues;
 
-    public final Map<Girino.Parameter, SupportLevel> parameterSupportLevels;
+    private final Map<Girino.Parameter, SupportLevel> parameterSupportLevels;
 
-    public final Map<Girino.Parameter, Integer> factoryParameterValues;
+    private final Map<Girino.Parameter, Integer> factoryParameterValues;
 
     private Device(
             String id,
             String description,
-            long baseFrequency,
             long setupDelayOnReset,
             String readyMessage,
             FrameFormat frameFormat,
@@ -166,13 +154,28 @@ public class Device {
 
         this.id = id;
         this.description = description;
-        this.baseFrequency = baseFrequency;
         this.setupDelayOnReset = setupDelayOnReset;
         this.readyMessage = readyMessage;
         this.frameFormat = frameFormat;
         this.prescalerInfoValues = prescalerInfoValues;
         this.parameterSupportLevels = parameterSupportLevels;
         this.factoryParameterValues = factoryParameterValues;
+    }
+
+    public long getSetupDelayOnReset() {
+        return setupDelayOnReset;
+    }
+
+    public String getReadyMessage() {
+        return readyMessage;
+    }
+
+    public FrameFormat getFrameFormat() {
+        return frameFormat;
+    }
+
+    public List<Girino.PrescalerInfo> getPrescalerInfoValues() {
+        return prescalerInfoValues;
     }
 
     public boolean isUserConfigurable(Girino.Parameter parameter) {
