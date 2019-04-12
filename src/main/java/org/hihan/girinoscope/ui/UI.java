@@ -352,7 +352,7 @@ public class UI extends JFrame {
         }
     };
 
-    private final Action startAcquiringAction = new AbstractAction("Start acquiring a single frame", Icon.get("media-record.png")) {
+    private final Action startAcquiringAction = new AbstractAction("Start acquiring a single frame", Icon.get("go-last.png")) {
         {
             putValue(Action.SHORT_DESCRIPTION, "Start acquiring a single frame of data from Girino.");
         }
@@ -368,7 +368,7 @@ public class UI extends JFrame {
         }
     };
 
-    private final Action startAcquiringInLoopAction = new AbstractAction("Start acquiring in loop", Icon.get("media-record.png")) {
+    private final Action startAcquiringInLoopAction = new AbstractAction("Start acquiring in loop", Icon.get("go-next.png")) {
         {
             putValue(Action.SHORT_DESCRIPTION, "Start acquiring data in loop from Girino.");
         }

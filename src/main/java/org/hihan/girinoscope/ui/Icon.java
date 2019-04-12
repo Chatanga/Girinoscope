@@ -6,10 +6,6 @@ import java.net.URL;
 import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
 
-/**
- * For the records, all the icons in this package have been found in my
- * '/usr/icons/Mint-X/actions/16' folders.
- */
 public class Icon {
 
     public static ImageIcon get(String name) {
