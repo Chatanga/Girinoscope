@@ -22,7 +22,7 @@ public class AboutDialog extends JDialog {
             HtmlPane htmlPane = new HtmlPane(AboutDialog.class.getResource("about.html"));
             htmlPane.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
             htmlPane.setOpaque(true);
-            add(htmlPane, BorderLayout.CENTER);
+            super.add(htmlPane, BorderLayout.CENTER);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

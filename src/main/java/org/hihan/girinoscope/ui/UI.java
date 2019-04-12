@@ -3,10 +3,10 @@ package org.hihan.girinoscope.ui;
 import com.fazecast.jSerialComm.SerialPort;
 import java.awt.BorderLayout;
 import java.awt.Color;
-import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Image;
 import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.beans.PropertyChangeEvent;
@@ -16,6 +16,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -32,6 +33,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -40,6 +42,7 @@ import javax.swing.AbstractAction;
 import javax.swing.AbstractButton;
 import javax.swing.Action;
 import javax.swing.ButtonGroup;
+import javax.swing.JButton;
 import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JComponent;
 import javax.swing.JDialog;
@@ -69,11 +72,14 @@ public class UI extends JFrame {
     public static void main(String[] args) throws Exception {
         Logger rootLogger = Logger.getLogger("org.hihan.girinoscope");
         rootLogger.setLevel(Level.INFO);
-        if (false) {
-            ConsoleHandler handler = new ConsoleHandler();
-            handler.setFormatter(new SimpleFormatter());
-            handler.setLevel(Level.ALL);
-            rootLogger.addHandler(handler);
+
+        for (String arg : args) {
+            if ("-debug".equals(arg)) {
+                ConsoleHandler handler = new ConsoleHandler();
+                handler.setFormatter(new SimpleFormatter());
+                handler.setLevel(Level.ALL);
+                rootLogger.addHandler(handler);
+            }
         }
 
         JFrame.setDefaultLookAndFeelDecorated(true);
@@ -105,8 +111,8 @@ public class UI extends JFrame {
         });
     }
 
-    private static boolean setLookAndFeelIfAvailable(String className) throws InstantiationException,
-            IllegalAccessException, UnsupportedLookAndFeelException {
+    private static boolean setLookAndFeelIfAvailable(String className)
+            throws InstantiationException, IllegalAccessException, UnsupportedLookAndFeelException {
         try {
             if (UI.class.getClassLoader().loadClass(className) != null) {
                 UIManager.setLookAndFeel(className);
@@ -179,18 +185,22 @@ public class UI extends JFrame {
 
         private final Map<Parameter, Integer> frozenParameters = new HashMap<>();
 
-        public DataAcquisitionTask() {
+        private final boolean repeated;
+
+        public DataAcquisitionTask(boolean repeated) {
+            this.repeated = repeated;
             startAcquiringAction.setEnabled(false);
+            startAcquiringInLoopAction.setEnabled(false);
             stopAcquiringAction.setEnabled(true);
             exportLastFrameAction.setEnabled(true);
         }
 
         @Override
         protected Void doInBackground() throws Exception {
-            while (!isCancelled()) {
+            do {
                 updateConnection();
                 acquireData();
-            }
+            } while (repeated && !isCancelled());
             return null;
         }
 
@@ -254,7 +264,7 @@ public class UI extends JFrame {
                         if (buffer != null) {
                             publish(new ByteArray(buffer));
                             acquisition = null;
-                            terminated = false;
+                            terminated = !repeated;
                         } else {
                             terminated = true;
                         }
@@ -278,6 +288,7 @@ public class UI extends JFrame {
         @Override
         protected void done() {
             startAcquiringAction.setEnabled(true);
+            startAcquiringInLoopAction.setEnabled(true);
             stopAcquiringAction.setEnabled(false);
             exportLastFrameAction.setEnabled(true);
             try {
@@ -310,7 +321,7 @@ public class UI extends JFrame {
                 int[] value = graphPane.getValues();
                 BufferedWriter writer = null;
                 try {
-                    writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file), "UTF-8"));
+                    writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8));
                     for (int i = 0; i < value.length; ++i) {
                         writer.write(String.format("%d;%d", i, value[i]));
                         writer.newLine();
@@ -341,9 +352,9 @@ public class UI extends JFrame {
         }
     };
 
-    private final Action startAcquiringAction = new AbstractAction("Start acquiring", Icon.get("media-record.png")) {
+    private final Action startAcquiringAction = new AbstractAction("Start acquiring a single frame", Icon.get("media-record.png")) {
         {
-            putValue(Action.SHORT_DESCRIPTION, "Start acquiring data from Girino.");
+            putValue(Action.SHORT_DESCRIPTION, "Start acquiring a single frame of data from Girino.");
         }
 
         @Override
@@ -352,7 +363,23 @@ public class UI extends JFrame {
                 parameters.put(Parameter.THRESHOLD, graphPane.getThreshold());
                 parameters.put(Parameter.WAIT_DURATION, graphPane.getWaitDuration());
             }
-            currentDataAcquisitionTask = new DataAcquisitionTask();
+            currentDataAcquisitionTask = new DataAcquisitionTask(false);
+            currentDataAcquisitionTask.execute();
+        }
+    };
+
+    private final Action startAcquiringInLoopAction = new AbstractAction("Start acquiring in loop", Icon.get("media-record.png")) {
+        {
+            putValue(Action.SHORT_DESCRIPTION, "Start acquiring data in loop from Girino.");
+        }
+
+        @Override
+        public void actionPerformed(ActionEvent event) {
+            synchronized (UI.this) {
+                parameters.put(Parameter.THRESHOLD, graphPane.getThreshold());
+                parameters.put(Parameter.WAIT_DURATION, graphPane.getWaitDuration());
+            }
+            currentDataAcquisitionTask = new DataAcquisitionTask(true);
             currentDataAcquisitionTask.execute();
         }
     };
@@ -387,39 +414,41 @@ public class UI extends JFrame {
     };
 
     public UI() {
-        setTitle("Girinoscope");
+        super.setTitle("Girinoscope");
 
         List<Image> icons = new LinkedList<>();
         for (int i = 256; i >= 16; i /= 2) {
             icons.add(Icon.getImage("icon-" + i + ".png"));
         }
-        setIconImages(icons);
+        super.setIconImages(icons);
 
-        setLayout(new BorderLayout());
+        super.setLayout(new BorderLayout());
 
         graphPane = new GraphPane();
         graphPane.setYCoordinateSystem(yAxisBuilder.build());
         graphPane.setPreferredSize(new Dimension(800, 600));
-        add(graphPane, BorderLayout.CENTER);
+        super.add(graphPane, BorderLayout.CENTER);
 
-        setJMenuBar(createMenuBar());
+        super.setJMenuBar(createMenuBar());
 
-        add(createToolBar(), BorderLayout.NORTH);
+        super.add(createToolBar(), BorderLayout.NORTH);
 
         statusBar = new StatusBar();
-        add(statusBar, BorderLayout.SOUTH);
+        super.add(statusBar, BorderLayout.SOUTH);
 
         stopAcquiringAction.setEnabled(false);
         exportLastFrameAction.setEnabled(false);
 
         if (port != null) {
             startAcquiringAction.setEnabled(true);
+            startAcquiringInLoopAction.setEnabled(true);
         } else {
             startAcquiringAction.setEnabled(false);
+            startAcquiringInLoopAction.setEnabled(false);
             setStatus("red", "No USB to serial adaptation port detected.");
         }
 
-        addWindowListener(new WindowAdapter() {
+        super.addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosed(WindowEvent e) {
                 settings.save();
@@ -673,23 +702,32 @@ public class UI extends JFrame {
     private JComponent createToolBar() {
         JToolBar toolBar = new JToolBar();
         toolBar.setFloatable(false);
-        final Component start = toolBar.add(startAcquiringAction);
-        final Component stop = toolBar.add(stopAcquiringAction);
-        start.addPropertyChangeListener("enabled", new PropertyChangeListener() {
+        final JButton start = toolBar.add(startAcquiringAction);
+        final JButton startLooping = toolBar.add(startAcquiringInLoopAction);
+        final JButton stop = toolBar.add(stopAcquiringAction);
+        final AtomicReference<JButton> lastStart = new AtomicReference<>(startLooping);
+        start.addActionListener(new ActionListener() {
 
             @Override
-            public void propertyChange(PropertyChangeEvent evt) {
-                if (!start.isEnabled()) {
-                    stop.requestFocusInWindow();
-                }
+            public void actionPerformed(ActionEvent e) {
+                lastStart.set(start);
+            }
+        });
+        startLooping.addActionListener(new ActionListener() {
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                lastStart.set(start);
             }
         });
         stop.addPropertyChangeListener("enabled", new PropertyChangeListener() {
 
             @Override
             public void propertyChange(PropertyChangeEvent evt) {
-                if (!stop.isEnabled()) {
-                    start.requestFocusInWindow();
+                if (stop.isEnabled()) {
+                    stop.requestFocusInWindow();
+                } else {
+                    lastStart.get().requestFocusInWindow();
                 }
             }
         });

@@ -61,15 +61,15 @@ public class HtmlPane extends JEditorPane {
             }
         };
 
-        setEditorKit(kit);
+        super.setEditorKit(kit);
         setContentType("text/html");
-        setText(text);
-        setEditable(false);
+        super.setText(text);
+        super.setEditable(false);
 
-        StyleSheet styleSheet = ((HTMLDocument) getDocument()).getStyleSheet();
+        StyleSheet styleSheet = ((HTMLDocument) super.getDocument()).getStyleSheet();
         styleSheet.addRule("body {bgcolor: white; font-family: Sans-Serif;}");
 
-        addHyperlinkListener(new HyperlinkListener() {
+        super.addHyperlinkListener(new HyperlinkListener() {
             @Override
             public void hyperlinkUpdate(final HyperlinkEvent event) {
                 if (event.getEventType() == HyperlinkEvent.EventType.ACTIVATED) {

@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.net.URL;
 import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * For the records, all the icons in this package have been found in my
@@ -13,7 +12,6 @@ import org.jetbrains.annotations.NotNull;
  */
 public class Icon {
 
-    @NotNull
     public static ImageIcon get(String name) {
         URL url = Icon.class.getResource(name);
         if (url != null) {

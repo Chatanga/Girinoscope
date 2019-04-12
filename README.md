@@ -89,13 +89,6 @@ Note: the `https.protocols=TLSv1.2` option is required with old Java versions (u
 
 ## Troubleshooting
 
-**The application crashes at startup when Using a JDK (or JRE) >= 1.9.**
-
-To be exact, an`InvocationTargetException` caused by a `NullPointerException` in `org.pushingpixels.substance`
-is raised at startup.
-As a workaround, use `mvn exec:java -Dexec.args="-nolaf"` or `java -jar target/Girinoscope-*-dist.jar -nolaf`
-to disable the Substance Look and Feel.
-
 **The UI is not very responsive on Linux, in particular when dragging the trigger axes.**
 
 Use `java -Dsun.java2d.opengl=true -jar target/Girinoscope-*-dist.jar` to enable the GPU acceleration.

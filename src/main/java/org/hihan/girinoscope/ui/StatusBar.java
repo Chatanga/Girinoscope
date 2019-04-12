@@ -7,6 +7,7 @@ import javax.swing.Box;
 import javax.swing.JLabel;
 import javax.swing.JToolBar;
 import javax.swing.UIManager;
+import javax.swing.border.EmptyBorder;
 
 @SuppressWarnings("serial")
 public class StatusBar extends JToolBar {
@@ -17,6 +18,7 @@ public class StatusBar extends JToolBar {
         super.setFloatable(false);
         super.add(Box.createVerticalStrut(16));
         super.add(label);
+        label.setBorder(new EmptyBorder(4, 4, 4, 4));
     }
 
     public void setText(String text) {

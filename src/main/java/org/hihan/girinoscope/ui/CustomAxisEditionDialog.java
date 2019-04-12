@@ -74,24 +74,24 @@ public class CustomAxisEditionDialog extends JDialog {
         super(owner, true);
         this.axisBuilder = axisBuilder;
 
-        setTitle("Y Axis parameters");
-        setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
+        super.setTitle("Y Axis parameters");
+        super.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
 
-        addWindowListener(new WindowAdapter() {
+        super.addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosing(WindowEvent e) {
                 CustomAxisEditionDialog.this.axisBuilder = null;
             }
         });
 
-        setLayout(new BorderLayout());
-        setBackground(Color.WHITE);
-        add(createEditorPane(), BorderLayout.CENTER);
-        add(createButtonBar(cancelAction, applyAction), BorderLayout.SOUTH);
+        super.setLayout(new BorderLayout());
+        super.setBackground(Color.WHITE);
+        super.add(createEditorPane(), BorderLayout.CENTER);
+        super.add(createButtonBar(cancelAction, applyAction), BorderLayout.SOUTH);
 
-        pack();
-        setLocationRelativeTo(owner);
-        setResizable(false);
+        super.pack();
+        super.setLocationRelativeTo(owner);
+        super.setResizable(false);
 
         DialogHelper.installEscapeCloseOperation(CustomAxisEditionDialog.this);
     }
@@ -105,6 +105,8 @@ public class CustomAxisEditionDialog extends JDialog {
         GridBagConstraints constraints = new GridBagConstraints();
 
         constraints.fill = GridBagConstraints.BOTH;
+        constraints.weightx = 1;
+        constraints.weighty = 1;
         constraints.ipadx = 2;
         constraints.ipady = 2;
         constraints.insets = new Insets(1, 4, 1, 4);
@@ -246,7 +248,7 @@ public class CustomAxisEditionDialog extends JDialog {
 
         JFormattedTextField numberField = new JFormattedTextField( //
                 new DefaultFormatterFactory(defaultFormatter, displayFormatter, editFormatter));
-        numberField.setColumns(8);
+        numberField.setColumns(12);
         return numberField;
     }
 
