@@ -67,7 +67,13 @@ The code optimization consists in applying the [advices](doc/girino_optimization
 [womai](http://www.instructables.com/member/womai/) in the
 [Girino Instructable](http://www.instructables.com/id/Girino-Fast-Arduino-Oscilloscope/).
 
-## Install
+## Install from Snap Store
+
+**Warning:** I’ve bundled the application as a Snap out of curiosity, but it is still a work in progress.
+
+[![Get it from the Snap Store](https://snapcraft.io/static/images/badges/en/snap-store-black.svg)](https://snapcraft.io/girinoscope)
+
+## Install from GitHub
 
 Just copy the [latest release](https://github.com/Chatanga/Girinoscope/releases) somewhere
 and launch the application by a simple double-click on the JAR.
@@ -75,7 +81,7 @@ In case your system doesn’t know how to handle a JAR,
 you can launch it through a more explicit `java -jar Girinoscope-*-dist.jar`
 Obviously, since this is a Java application, you need a [JRE 1.7 or higher](https://www.java.com/fr).
 
-## Build
+## Build from sources
 
 You just need a [JDK 1.7 or higher](http://www.oracle.com/technetwork/java/javase/downloads/index.html)
 and [Maven](https://maven.apache.org/).
@@ -99,6 +105,3 @@ On Linux (Ubuntu), you need to be a member of the `dialout` group
 (a `sudo usermod -a -G dialout $USER` should do the trick).
 Note that on other distributions, the group(s) involved could be different.
 
-## Author
-
-Florent Lioult
