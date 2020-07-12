@@ -73,6 +73,44 @@ The code optimization consists in applying the [advices](doc/girino_optimization
 
 [![Get it from the Snap Store](https://snapcraft.io/static/images/badges/en/snap-store-black.svg)](https://snapcraft.io/girinoscope)
 
+
+**Important**
+
+This confined version of Girinoscope has trouble accessing the serial ports.
+It is not yet clear to me what should I do and what is supported at this time.
+As a workaround, the following instructions should "solve" the problem:
+
+Check your snapd version. The installed version need to be >= 2.39.
+
+``` bash
+apt-cache policy snapd
+```
+
+Enable hotplug support:
+
+``` bash
+sudo snap set system experimental.hotplug=true
+sudo systemctl restart snapd
+```
+
+Plug your serial to USB adaptor and get its name:
+
+``` bash
+snap connections system | grep serial
+```
+
+Manually connect it (mine was called 'pl2303serialport') to the application:
+
+``` bash
+snap connect girinoscope:serial-port :pl2303serialport
+```
+
+The updated connections should display something like this:
+
+``` bash
+serial-port               girinoscope:serial-port                    :pl2303serialport          manual
+```
+
 ### From GitHub
 
 Just copy the [latest release](https://github.com/Chatanga/Girinoscope/releases) somewhere
