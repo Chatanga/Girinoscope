@@ -397,7 +397,7 @@ public class UI extends JFrame {
         }
     };
 
-    private final Action aboutAction = new AbstractAction("About Girinoscope", Icon.get("help-about.png")) {
+    private final Action aboutAction = new AbstractAction("About Girinoscope") {
 
         @Override
         public void actionPerformed(ActionEvent event) {
@@ -405,7 +405,7 @@ public class UI extends JFrame {
         }
     };
 
-    private final Action exitAction = new AbstractAction("Quit", Icon.get("application-exit.png")) {
+    private final Action exitAction = new AbstractAction("Quit") {
 
         @Override
         public void actionPerformed(ActionEvent event) {
