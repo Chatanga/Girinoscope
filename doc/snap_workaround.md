@@ -2,7 +2,15 @@ This confined version of Girinoscope has trouble accessing the serial ports.
 It is not yet clear to me what should I do and what is supported at this time.
 There are however 2 workarounds which could be applied to fix this issue:
 
-## 1) Quick and dirty
+## 1) Best if available
+
+Open the Girinoscope page in the Snap Store software and give serial port access to the installed application.
+If it is a simple checkbox (as some kind of slider), it should be ok,
+but if it is some kind of combobox with no choices though... that’s bad news.
+Maybe the hotplug support need to be enabled first for it to work as intended (see the third solution),
+but I’m not sure about it.
+
+## 2) Quick and dirty
 
 Simply install the Snap in _devmode_. The application won’t be confined anymore though.
 Confinment is not the only benefit of a Snap, but it’s unfortunate to have to leave it aside.
@@ -11,7 +19,7 @@ Confinment is not the only benefit of a Snap, but it’s unfortunate to have to 
 snap install girinoscope --devmode
 ```
 
-## 2) Somewhat better, but a bit convoluted
+## 3) Somewhat better, but a bit convoluted
 
 This option is better — the application will be kept confined —, but a bit convoluted.
 It relies on the [hotplug support](https://snapcraft.io/docs/hotplug-support/) for USB serial adapters

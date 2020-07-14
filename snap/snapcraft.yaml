@@ -14,6 +14,11 @@ grade: stable
 confinement: strict
 base: core18
 
+architectures:
+  - build-on: amd64
+  - build-on: armhf
+  - build-on: arm64
+
 parts:
   girinoscope:
     plugin: maven
@@ -41,7 +46,7 @@ apps:
       - gnome-3-28
     command: java -jar $SNAP/jar/Girinoscope-$SNAPCRAFT_PROJECT_VERSION-SNAPSHOT-dist.jar
     environment:
-      _JAVA_OPTIONS: '-Dsun.java2d.opengl=true'
+      _JAVA_OPTIONS: "-Duser.home=$SNAP_USER_DATA -Dsun.java2d.opengl=true"
     plugs:
       - home
       - desktop
