@@ -44,7 +44,7 @@ apps:
   girinoscope:
     extensions:
       - gnome-3-28
-    command: java -jar $SNAP/jar/Girinoscope-$SNAPCRAFT_PROJECT_VERSION-SNAPSHOT-dist.jar
+    command: java -jar $SNAP/jar/Girinoscope-$SNAPCRAFT_PROJECT_VERSION-dist.jar
     environment:
       _JAVA_OPTIONS: "-Duser.home=$SNAP_USER_DATA -Dsun.java2d.opengl=true"
     plugs:

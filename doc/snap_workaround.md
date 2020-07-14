@@ -1,6 +1,6 @@
 This confined version of Girinoscope has trouble accessing the serial ports.
 It is not yet clear to me what should I do and what is supported at this time.
-There are however 2 workarounds which could be applied to fix this issue:
+There are however 1 solution and 2 workarounds which could be applied to fix this issue:
 
 ## 1) Best if available
 
