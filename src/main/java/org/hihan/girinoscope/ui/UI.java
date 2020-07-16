@@ -86,8 +86,9 @@ public class UI extends JFrame {
         JDialog.setDefaultLookAndFeelDecorated(true);
         try {
             String[] allLafs = {
-                //"javax.swing.plaf.nimbus.NimbusLookAndFeel",
-                //"com.sun.java.swing.plaf.nimbus.NimbusLookAndFeel",
+                "com.sun.java.swing.plaf.gtk.GTKLookAndFeel",
+                "javax.swing.plaf.nimbus.NimbusLookAndFeel",
+                "com.sun.java.swing.plaf.nimbus.NimbusLookAndFeel",
                 UIManager.getSystemLookAndFeelClassName()
             };
             for (String laf : allLafs) {

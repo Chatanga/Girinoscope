@@ -3,7 +3,7 @@
 ## [1.3.1-SNAPSHOT]
 ### Added
 - Slightly improved status messages.
-- Reverted to the system LaF instead of Nimbus.
+- Now try the GTK (in Linux) LaF before Nimbus.
 
 ## [1.3.0]
 ### Added
