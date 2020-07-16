@@ -29,16 +29,17 @@ public class Serial implements Closeable {
     private static final Logger LOGGER = Logger.getLogger(Serial.class.getName());
 
     /*
-     * The ports we're normally going to use: USB (or Bluetooth) to serial
-     * adapters.
+     * I can’t remember why I try to filter the ports available. Any serial
+     * port should work here and there is no need to check if it is a USB
+     * adapter or something else.
      */
     private static final Pattern[] ACCEPTABLE_PORT_NAMES = {
         //
         Pattern.compile(".*tty\\.usbserial-.+"), // Mac OS X
         Pattern.compile(".*cu\\.wchusbserial.+"), // Mac OS X
         Pattern.compile(".*tty\\.usbmodem.+"), // Mac OS X
-        Pattern.compile(".*ttyACM\\d+"), // Raspberry Pi
-        Pattern.compile(".*ttyUSB\\d+"), // Linux
+        Pattern.compile(".*ttyACM\\d+"), // Linux "modem"
+        Pattern.compile(".*ttyUSB\\d+"), // Linux USB to serial adapter
         Pattern.compile(".*rfcomm\\d+"), // Linux Bluetooth
         Pattern.compile(".*COM\\d+"), // Windows
     };

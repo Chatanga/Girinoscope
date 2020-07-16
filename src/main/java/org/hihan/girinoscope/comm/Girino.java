@@ -162,14 +162,14 @@ public class Girino {
                 serial = new Serial(port);
                 try {
                     /*
-                     * The USB to serial adapter is expected to reset the AVR
-                     * each time a connection is etablished. The delay here is to
-                     * give some time to the controller to set itself up. Since
-                     * the Girino protocol only output its signature at startup,
-                     * a lack of response could be an inappropriate serial adapter
-                     * without the DTR/RTS wire (ie. it has only 4 wires) used to
-                     * force a reset. It won’t be the case with an Arduino, but
-                     * if you have built your device from scratch, it could.
+                     * The serial port is expected to reset the AVR each time a
+                     * connection is etablished. The delay here is to give some
+                     * time to the controller to set itself up. Since the Girino
+                     * protocol only output its signature at startup, a lack of
+                     * response could be an inappropriate serial adapter without
+                     * the DTR/RTS wire (ie. it has only 4 wires) used to force
+                     * a reset. It won’t be the case with an Arduino, but if you
+                     * have built your device from scratch, it could.
                      */
                     Thread.sleep(device.getSetupDelayOnReset());
 

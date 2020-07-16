@@ -86,8 +86,8 @@ public class UI extends JFrame {
         JDialog.setDefaultLookAndFeelDecorated(true);
         try {
             String[] allLafs = {
-                "javax.swing.plaf.nimbus.NimbusLookAndFeel",
-                "com.sun.java.swing.plaf.nimbus.NimbusLookAndFeel",
+                //"javax.swing.plaf.nimbus.NimbusLookAndFeel",
+                //"com.sun.java.swing.plaf.nimbus.NimbusLookAndFeel",
                 UIManager.getSystemLookAndFeelClassName()
             };
             for (String laf : allLafs) {
@@ -186,13 +186,15 @@ public class UI extends JFrame {
         private final Map<Parameter, Integer> frozenParameters = new HashMap<>();
 
         private final boolean repeated;
+        
+        private int frameIndex;
 
         public DataAcquisitionTask(boolean repeated) {
             this.repeated = repeated;
             startAcquiringAction.setEnabled(false);
             startAcquiringInLoopAction.setEnabled(false);
             stopAcquiringAction.setEnabled(true);
-            exportLastFrameAction.setEnabled(true);
+            exportLastFrameAction.setEnabled(false);
         }
 
         @Override
@@ -232,10 +234,11 @@ public class UI extends JFrame {
         }
 
         private void acquireData() throws Exception {
-            setStatus("blue", "Acquiring data from %s...", frozenPort.getSystemPortName());
+            frameIndex = 1;
             Future<byte[]> acquisition = null;
             boolean terminated;
             do {
+                setStatus("blue", "Acquiring data frame %d from %s...", frameIndex, frozenPort.getSystemPortName());
                 boolean updateConnection;
                 synchronized (UI.this) {
                     parameters.put(Parameter.THRESHOLD, graphPane.getThreshold());
@@ -268,6 +271,7 @@ public class UI extends JFrame {
                         } else {
                             terminated = true;
                         }
+                        ++frameIndex;
                     } catch (TimeoutException e) {
                         // Just to wake up regularly.
                         terminated = false;
@@ -283,6 +287,7 @@ public class UI extends JFrame {
         protected void process(List<ByteArray> byteArrays) {
             LOGGER.log(Level.FINE, "{0} data buffer(s) to display.", byteArrays.size());
             graphPane.setData(byteArrays.get(byteArrays.size() - 1).bytes);
+            exportLastFrameAction.setEnabled(true);
         }
 
         @Override
@@ -290,7 +295,6 @@ public class UI extends JFrame {
             startAcquiringAction.setEnabled(true);
             startAcquiringInLoopAction.setEnabled(true);
             stopAcquiringAction.setEnabled(false);
-            exportLastFrameAction.setEnabled(true);
             try {
                 if (!isCancelled()) {
                     get();
@@ -442,10 +446,11 @@ public class UI extends JFrame {
         if (port != null) {
             startAcquiringAction.setEnabled(true);
             startAcquiringInLoopAction.setEnabled(true);
+            setStatus("blue", "Ready.");
         } else {
             startAcquiringAction.setEnabled(false);
             startAcquiringInLoopAction.setEnabled(false);
-            setStatus("red", "No USB to serial adaptation port detected.");
+            setStatus("red", "No serial port detected.");
         }
 
         super.addWindowListener(new WindowAdapter() {

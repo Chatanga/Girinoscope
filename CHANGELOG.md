@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.1-SNAPSHOT]
+### Added
+- Slightly improved status messages.
+- Reverted to the system LaF instead of Nimbus.
+
 ## [1.3.0]
 ### Added
 - Snap support for the Linux folk.

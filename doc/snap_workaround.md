@@ -1,6 +1,6 @@
-This confined version of Girinoscope has trouble accessing the serial ports.
+This confined version of Girinoscope could face trouble accessing the serial ports.
 It is not yet clear to me what should I do and what is supported at this time.
-There are however 1 solution and 2 workarounds which could be applied to fix this issue:
+Here are 3 things to try to fix this problem:
 
 ## 1) Best if available
 
@@ -55,4 +55,3 @@ The updated connections should display something like this:
 ``` bash
 serial-port               girinoscope:serial-port                    :pl2303serialport          manual
 ```
-
