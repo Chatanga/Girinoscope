@@ -99,7 +99,7 @@ Note: the `https.protocols=TLSv1.2` option is required with old Java versions (u
 
 Use `java -Dsun.java2d.opengl=true -jar target/Girinoscope-*-dist.jar` to enable the GPU acceleration.
 
-**An serial port is detected but cannot be opened.**
+**A serial port is detected but cannot be opened.**
 
 On Linux (Ubuntu), you need to be a member of the `dialout` group
 (a `sudo usermod -a -G dialout $USER` should do the trick).
@@ -112,7 +112,7 @@ This one is not a bug, but simply a limitation of the application which doesn’
 When you plug something like a USB to serial adapter (eg. an Arduino board),
 you also need to restart the application to use it.
 
-**Web link are not working in the dialogs.**
+**Web links are not working in the dialogs.**
 
 It’s a known problem with the Snap version regarding how the JDK try to launch a browser.
 I know there is a workaround, but I didn’t figured it exactly.

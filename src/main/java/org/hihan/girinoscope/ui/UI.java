@@ -54,6 +54,7 @@ import javax.swing.JToolBar;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 import javax.swing.UIManager;
+import javax.swing.UIManager.LookAndFeelInfo;
 import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.WindowConstants;
 import org.hihan.girinoscope.comm.Device;
@@ -82,24 +83,6 @@ public class UI extends JFrame {
             }
         }
 
-        JFrame.setDefaultLookAndFeelDecorated(true);
-        JDialog.setDefaultLookAndFeelDecorated(true);
-        try {
-            String[] allLafs = {
-                "com.sun.java.swing.plaf.gtk.GTKLookAndFeel",
-                "javax.swing.plaf.nimbus.NimbusLookAndFeel",
-                "com.sun.java.swing.plaf.nimbus.NimbusLookAndFeel",
-                UIManager.getSystemLookAndFeelClassName()
-            };
-            for (String laf : allLafs) {
-                if (setLookAndFeelIfAvailable(laf)) {
-                    break;
-                }
-            }
-        } catch (Exception e) {
-            LOGGER.log(Level.WARNING, "When setting the look and feel.", e);
-        }
-
         SwingUtilities.invokeAndWait(new Runnable() {
             @Override
             public void run() {
@@ -110,20 +93,6 @@ public class UI extends JFrame {
                 frame.setVisible(true);
             }
         });
-    }
-
-    private static boolean setLookAndFeelIfAvailable(String className)
-            throws InstantiationException, IllegalAccessException, UnsupportedLookAndFeelException {
-        try {
-            if (UI.class.getClassLoader().loadClass(className) != null) {
-                UIManager.setLookAndFeel(className);
-                return true;
-            } else {
-                return false;
-            }
-        } catch (ClassNotFoundException e) {
-            return false;
-        }
     }
 
     private final Settings settings = new Settings();
@@ -187,7 +156,7 @@ public class UI extends JFrame {
         private final Map<Parameter, Integer> frozenParameters = new HashMap<>();
 
         private final boolean repeated;
-        
+
         private int frameIndex;
 
         public DataAcquisitionTask(boolean repeated) {
@@ -324,23 +293,13 @@ public class UI extends JFrame {
             if (fileChooser.showSaveDialog(UI.this) == JFileChooser.APPROVE_OPTION) {
                 File file = fileChooser.getSelectedFile();
                 int[] value = graphPane.getValues();
-                BufferedWriter writer = null;
-                try {
-                    writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8));
+                try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8))) {
                     for (int i = 0; i < value.length; ++i) {
                         writer.write(String.format("%d;%d", i, value[i]));
                         writer.newLine();
                     }
                 } catch (IOException e) {
                     setStatus("red", e.getMessage());
-                } finally {
-                    if (writer != null) {
-                        try {
-                            writer.close();
-                        } catch (IOException e) {
-                            setStatus("red", e.getMessage());
-                        }
-                    }
                 }
             }
         }
@@ -431,7 +390,7 @@ public class UI extends JFrame {
 
         graphPane = new GraphPane();
         graphPane.setYCoordinateSystem(yAxisBuilder.build());
-        graphPane.setPreferredSize(new Dimension(800, 600));
+        graphPane.setPreferredSize(new Dimension(1024, 768));
         super.add(graphPane, BorderLayout.CENTER);
 
         super.setJMenuBar(createMenuBar());
@@ -499,6 +458,7 @@ public class UI extends JFrame {
         JMenu displayMenu = new JMenu("Display");
         displayMenu.add(setDisplayedSignalReferentia);
         displayMenu.add(createDataStrokeWidthMenu());
+        displayMenu.add(createThemeMenu());
         menuBar.add(displayMenu);
 
         JMenu helpMenu = new JMenu("Help");
@@ -698,6 +658,42 @@ public class UI extends JFrame {
             AbstractButton button = new JCheckBoxMenuItem(setStrokeWidth);
             if (width == 1) {
                 button.doClick();
+            }
+            group.add(button);
+            menu.add(button);
+        }
+        return menu;
+    }
+
+    private JMenu createThemeMenu() {
+        String selectedLafClassName = settings.get("lookAndFeel", UIManager.getSystemLookAndFeelClassName());
+        JMenu menu = new JMenu("Theme");
+        ButtonGroup group = new ButtonGroup();
+        for (final LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
+            final String lafClassName = info.getClassName();
+            Action setLnF = new AbstractAction(info.getName()) {
+
+                @Override
+                public void actionPerformed(ActionEvent event) {
+                    try {
+                        UIManager.setLookAndFeel(lafClassName);
+                        SwingUtilities.updateComponentTreeUI(getRootPane());
+                        settings.put("lookAndFeel", lafClassName);
+                    } catch (ReflectiveOperationException | UnsupportedLookAndFeelException e) {
+                        LOGGER.log(Level.WARNING, "When setting the look and feel.", e);
+                        setStatus("red", "Failed to set the look and feel.");
+                    }
+                }
+            };
+
+            final AbstractButton button = new JCheckBoxMenuItem(setLnF);
+            if (Objects.equals(selectedLafClassName, lafClassName)) {
+                SwingUtilities.invokeLater(new Runnable() {
+                    @Override
+                    public void run() {
+                        button.doClick();
+                    }
+                });
             }
             group.add(button);
             menu.add(button);

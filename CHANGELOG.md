@@ -3,7 +3,7 @@
 ## [1.3.1-SNAPSHOT]
 ### Added
 - Slightly improved status messages.
-- Now try the GTK (in Linux) LaF before Nimbus.
+- Reinstated the look and feel selection.
 
 ## [1.3.0]
 ### Added

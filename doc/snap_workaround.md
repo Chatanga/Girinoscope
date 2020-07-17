@@ -1,57 +1,27 @@
-This confined version of Girinoscope could face trouble accessing the serial ports.
-It is not yet clear to me what should I do and what is supported at this time.
-Here are 3 things to try to fix this problem:
+This Snap version of Girinoscope requires explicit permissions to access the serial ports.
+To do so, open the Girinoscope page in the Snap Store software,
+click the permission button and give serial port access to the installed application.
+If it is a simple checkbox (displayed as a slide to unlock button), it should be ok.
+Hovewer, if it is a combobox with no choices, you need to enable the hotplug support for it to work as intended:
 
-## 1) Best if available
-
-Open the Girinoscope page in the Snap Store software and give serial port access to the installed application.
-If it is a simple checkbox (as some kind of slider), it should be ok,
-but if it is some kind of combobox with no choices though... that’s bad news.
-Maybe the hotplug support need to be enabled first for it to work as intended (see the third solution),
-but I’m not sure about it.
-
-## 2) Quick and dirty
-
-Simply install the Snap in _devmode_. The application won’t be confined anymore though.
-Confinment is not the only benefit of a Snap, but it’s unfortunate to have to leave it aside.
-
-``` bash
-snap install girinoscope --devmode
-```
-
-## 3) Somewhat better, but a bit convoluted
-
-This option is better — the application will be kept confined —, but a bit convoluted.
-It relies on the [hotplug support](https://snapcraft.io/docs/hotplug-support/) for USB serial adapters
-which is still under devlopment.
-
-Check your snapd version. The installed version need to be >= 2.39.
+First, check your _snapd_ version.
 
 ``` bash
 apt-cache policy snapd
 ```
 
-Enable hotplug support:
+If the installed version is greater or equals to 2.39,
+you can then enable the hotplug support.
 
 ``` bash
 sudo snap set system experimental.hotplug=true
 sudo systemctl restart snapd
 ```
 
-Plug your serial to USB adaptor and get its name:
+If your _snapd_ version is too old or you don’t want to enable the experimental hotplug support,
+you could also install the Snap in _devmode_.
+The application won’t be confined anymore though.
 
 ``` bash
-snap connections system | grep serial
-```
-
-Manually connect it (mine was called 'pl2303serialport') to the application:
-
-``` bash
-snap connect girinoscope:serial-port :pl2303serialport
-```
-
-The updated connections should display something like this:
-
-``` bash
-serial-port               girinoscope:serial-port                    :pl2303serialport          manual
+snap install girinoscope --devmode
 ```
