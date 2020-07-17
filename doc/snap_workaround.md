@@ -1,4 +1,4 @@
-This Snap version of Girinoscope requires explicit permissions to access the serial ports.
+This Snap version of Girinoscope requires explicit permissions to access serial ports.
 To do so, open the Girinoscope page in the Snap Store software,
 click the permission button and give serial port access to the installed application.
 If it is a simple checkbox (displayed as a slide to unlock button), it should be ok.
@@ -18,7 +18,21 @@ sudo snap set system experimental.hotplug=true
 sudo systemctl restart snapd
 ```
 
-If your _snapd_ version is too old or you don’t want to enable the experimental hotplug support,
+In case the serial port still cannot be opened, you can try to connect it manually to the application:
+
+``` bash
+snap connect girinoscope:serial-port :pl2303serialport
+```
+
+Mine was called `pl2303serialport`.
+To know the exact name of your serial port and its connection status,
+your can query the available connections:
+
+``` bash
+snap connections system | grep serial
+```
+
+Finally, if your _snapd_ version is too old or you don’t want to enable the experimental hotplug support,
 you could also install the Snap in _devmode_.
 The application won’t be confined anymore though.
 

@@ -3,11 +3,9 @@ package org.hihan.girinoscope.ui;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.io.IOException;
-import java.util.Properties;
 import javax.swing.BorderFactory;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
-import javax.swing.JLabel;
 import javax.swing.WindowConstants;
 
 @SuppressWarnings("serial")
@@ -21,9 +19,7 @@ public class AboutDialog extends JDialog {
         super.setBackground(Color.WHITE);
 
         try {
-            Properties properties = new Properties();
-            properties.setProperty("java.version", System.getProperty("java.version"));
-            HtmlPane htmlPane = new HtmlPane(AboutDialog.class.getResource("about.html"), properties);
+            HtmlPane htmlPane = new HtmlPane(AboutDialog.class.getResource("about.html"), System.getProperties());
             htmlPane.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
             htmlPane.setOpaque(true);
             super.add(htmlPane, BorderLayout.CENTER);

@@ -390,7 +390,7 @@ public class UI extends JFrame {
 
         graphPane = new GraphPane();
         graphPane.setYCoordinateSystem(yAxisBuilder.build());
-        graphPane.setPreferredSize(new Dimension(1024, 768));
+        graphPane.setPreferredSize(new Dimension(800, 600));
         super.add(graphPane, BorderLayout.CENTER);
 
         super.setJMenuBar(createMenuBar());
