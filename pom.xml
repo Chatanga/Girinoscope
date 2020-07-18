@@ -31,6 +31,12 @@
 
     <dependencies>
         <dependency>
+            <groupId>com.ruleoftech</groupId>
+            <artifactId>markdown-page-generator-plugin</artifactId>
+            <version>2.3.0</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
             <groupId>com.fazecast</groupId>
             <artifactId>jSerialComm</artifactId>
             <version>2.0.2</version>
@@ -100,6 +106,24 @@
                 <configuration>
                     <mainClass>org.hihan.girinoscope.ui.UI</mainClass>
                 </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>com.ruleoftech</groupId>
+                <artifactId>markdown-page-generator-plugin</artifactId>
+                <version>2.3.0</version>
+                <executions>
+                    <execution>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>                        
+                        <configuration>
+                            <inputDirectory>${project.basedir}</inputDirectory>
+                            <outputDirectory>${project.build.directory}/classes/org/hihan/girinoscope/ui</outputDirectory>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
 
             <plugin>

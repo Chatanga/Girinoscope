@@ -95,10 +95,6 @@ Note: the `https.protocols=TLSv1.2` option is required with old Java versions (u
 
 ## Troubleshooting
 
-**The UI is not very responsive on Linux, in particular when dragging the trigger axes.**
-
-Use `java -Dsun.java2d.opengl=true -jar target/Girinoscope-*-dist.jar` to enable the GPU acceleration.
-
 **A serial port is detected but cannot be opened.**
 
 On Linux (Ubuntu), you need to be a member of the `dialout` group
@@ -109,8 +105,7 @@ In addition, if you have installed the Girinoscope from the Snap Store, there ar
 **New serial ports are not detected.**
 
 This one is not a bug, but simply a limitation of the application which doesn’t detect when a serial port is added (or removed).
-When you plug something like a USB to serial adapter (eg. an Arduino board),
-you also need to restart the application to use it.
+When you plug something like a USB to serial adapter (eg. an Arduino board), you also need to restart the application to use it.
 
 **Web links are not working in the dialogs.**
 

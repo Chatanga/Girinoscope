@@ -16,7 +16,11 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Paths;
+import java.security.NoSuchAlgorithmException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -45,7 +49,6 @@ import javax.swing.ButtonGroup;
 import javax.swing.JButton;
 import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JComponent;
-import javax.swing.JDialog;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JMenu;
@@ -81,6 +84,19 @@ public class UI extends JFrame {
                 handler.setLevel(Level.ALL);
                 rootLogger.addHandler(handler);
             }
+        }
+
+        if (Settings.OS.resolve() == Settings.OS.Linux) {
+            System.setProperty("sun.java2d.opengl", "true");
+        }
+        System.setProperty("awt.useSystemAAFontSettings", "on");
+        System.setProperty("swing.aatext", "true");
+
+        String lafClassName = new Settings().get("lookAndFeel", UIManager.getSystemLookAndFeelClassName());
+        try {
+            UIManager.setLookAndFeel(lafClassName);
+        } catch (ReflectiveOperationException | UnsupportedLookAndFeelException e) {
+            LOGGER.log(Level.WARNING, "When setting the look and feel at startup.", e);
         }
 
         SwingUtilities.invokeAndWait(new Runnable() {
@@ -293,7 +309,7 @@ public class UI extends JFrame {
             if (fileChooser.showSaveDialog(UI.this) == JFileChooser.APPROVE_OPTION) {
                 File file = fileChooser.getSelectedFile();
                 int[] value = graphPane.getValues();
-                try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8))) {
+                try ( BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8))) {
                     for (int i = 0; i < value.length; ++i) {
                         writer.write(String.format("%d;%d", i, value[i]));
                         writer.newLine();
@@ -418,7 +434,25 @@ public class UI extends JFrame {
             public void windowClosed(WindowEvent e) {
                 settings.save();
             }
+
+            @Override
+            public void windowOpened(WindowEvent arg0) {
+                showChangeLogDialogIfNeeded();
+            }
         });
+    }
+
+    private void showChangeLogDialogIfNeeded() {
+        try {
+            URI uri = ChangeLogDialog.class.getResource("CHANGELOG.html").toURI();
+            String changeLogCheckSum = Checksum.bytesToHex(Checksum.createChecksum(Paths.get(uri)));
+            if (!changeLogCheckSum.equals(settings.get("changeLogCheckSum", null))) {
+                settings.put("changeLogCheckSum", changeLogCheckSum);
+                new ChangeLogDialog(UI.this).setVisible(true);
+            }
+        } catch (IOException | URISyntaxException | NoSuchAlgorithmException e) {
+            LOGGER.log(Level.WARNING, "When calculation the change log checksum.", e);
+        }
     }
 
     /*
@@ -688,12 +722,7 @@ public class UI extends JFrame {
 
             final AbstractButton button = new JCheckBoxMenuItem(setLnF);
             if (Objects.equals(selectedLafClassName, lafClassName)) {
-                SwingUtilities.invokeLater(new Runnable() {
-                    @Override
-                    public void run() {
-                        button.doClick();
-                    }
-                });
+                button.setSelected(true);
             }
             group.add(button);
             menu.add(button);

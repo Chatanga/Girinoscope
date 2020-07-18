@@ -2,6 +2,9 @@ package org.hihan.girinoscope.ui;
 
 import java.awt.Color;
 import java.awt.Desktop;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -103,8 +106,20 @@ public class HtmlPane extends JEditorPane {
                         }
                     }
                 });
+            } else {
+                LOGGER.log(Level.WARNING, "Desktop browse action is not supported.");
             }
+        } else {
+            LOGGER.log(Level.WARNING, "Desktop is not supported.");
         }
+    }
+
+    @Override
+    protected void paintComponent(Graphics g) {
+        Graphics2D graphics2D = (Graphics2D) g;
+        graphics2D.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        super.paintComponent(g);
+        g.dispose();
     }
 
     private static String getHref(HyperlinkEvent event) {

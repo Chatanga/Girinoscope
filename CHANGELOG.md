@@ -4,6 +4,9 @@
 ### Added
 - Slightly improved status messages.
 - Reinstated the look and feel selection.
+- Changelog popup at startup after an update.
+### Fixed
+- Some Snap issues.
 
 ## [1.3.0]
 ### Added

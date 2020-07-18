@@ -39,3 +39,4 @@ The application won’t be confined anymore though.
 ``` bash
 snap install girinoscope --devmode
 ```
+na
