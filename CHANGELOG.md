@@ -7,6 +7,7 @@
 - Changelog popup at startup after an update.
 ### Fixed
 - Some Snap issues.
+- The badly supported Desktop API on Linux.
 
 ## [1.3.0]
 ### Added

@@ -16,10 +16,8 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
-import java.net.URI;
-import java.net.URISyntaxException;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Paths;
 import java.security.NoSuchAlgorithmException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -38,10 +36,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.logging.ConsoleHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.logging.SimpleFormatter;
 import javax.swing.AbstractAction;
 import javax.swing.AbstractButton;
 import javax.swing.Action;
@@ -74,18 +70,6 @@ public class UI extends JFrame {
     private static final Logger LOGGER = Logger.getLogger(UI.class.getName());
 
     public static void main(String[] args) throws Exception {
-        Logger rootLogger = Logger.getLogger("org.hihan.girinoscope");
-        rootLogger.setLevel(Level.INFO);
-
-        for (String arg : args) {
-            if ("-debug".equals(arg)) {
-                ConsoleHandler handler = new ConsoleHandler();
-                handler.setFormatter(new SimpleFormatter());
-                handler.setLevel(Level.ALL);
-                rootLogger.addHandler(handler);
-            }
-        }
-
         if (Settings.OS.resolve() == Settings.OS.Linux) {
             System.setProperty("sun.java2d.opengl", "true");
         }
@@ -430,6 +414,7 @@ public class UI extends JFrame {
         }
 
         super.addWindowListener(new WindowAdapter() {
+
             @Override
             public void windowClosed(WindowEvent e) {
                 settings.save();
@@ -444,13 +429,13 @@ public class UI extends JFrame {
 
     private void showChangeLogDialogIfNeeded() {
         try {
-            URI uri = ChangeLogDialog.class.getResource("CHANGELOG.html").toURI();
-            String changeLogCheckSum = Checksum.bytesToHex(Checksum.createChecksum(Paths.get(uri)));
+            URL url = ChangeLogDialog.class.getResource("CHANGELOG.html");
+            String changeLogCheckSum = Checksum.bytesToHex(Checksum.createChecksum(url));
             if (!changeLogCheckSum.equals(settings.get("changeLogCheckSum", null))) {
                 settings.put("changeLogCheckSum", changeLogCheckSum);
                 new ChangeLogDialog(UI.this).setVisible(true);
             }
-        } catch (IOException | URISyntaxException | NoSuchAlgorithmException e) {
+        } catch (IOException | NoSuchAlgorithmException e) {
             LOGGER.log(Level.WARNING, "When calculation the change log checksum.", e);
         }
     }

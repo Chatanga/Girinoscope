@@ -1,7 +1,6 @@
 package org.hihan.girinoscope.ui;
 
 import java.awt.Color;
-import java.awt.Desktop;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
@@ -90,28 +89,21 @@ public class HtmlPane extends JEditorPane {
         StyleSheet styleSheet = ((HTMLDocument) super.getDocument()).getStyleSheet();
         styleSheet.addRule("body {bgcolor: white; font-family: Sans-Serif;}");
 
-        if (Desktop.isDesktopSupported()) {
-            final Desktop desktop = Desktop.getDesktop();
-            if (desktop.isSupported(Desktop.Action.BROWSE)) {
-                super.addHyperlinkListener(new HyperlinkListener() {
-                    @Override
-                    public void hyperlinkUpdate(final HyperlinkEvent event) {
-                        if (event.getEventType() == HyperlinkEvent.EventType.ACTIVATED) {
-                            final String href = getHref(event);
-                            try {
-                                desktop.browse(new URI(href));
-                            } catch (URISyntaxException | IOException e) {
-                                LOGGER.log(Level.WARNING, "Can’t open link " + href, e);
-                            }
+        super.addHyperlinkListener(new HyperlinkListener() {
+            @Override
+            public void hyperlinkUpdate(final HyperlinkEvent event) {
+                if (event.getEventType() == HyperlinkEvent.EventType.ACTIVATED) {
+                    final String href = getHref(event);
+                    try {
+                        if (!DesktopApi.browse(new URI(href))) {
+                            LOGGER.log(Level.WARNING, "Can’t open link {0}.", href);
                         }
+                    } catch (URISyntaxException e) {
+                        LOGGER.log(Level.WARNING, "Malformed URL " + href, e);
                     }
-                });
-            } else {
-                LOGGER.log(Level.WARNING, "Desktop browse action is not supported.");
+                }
             }
-        } else {
-            LOGGER.log(Level.WARNING, "Desktop is not supported.");
-        }
+        });
     }
 
     @Override

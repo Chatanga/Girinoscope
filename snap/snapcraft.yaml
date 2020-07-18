@@ -48,10 +48,8 @@ apps:
     environment:
       _JAVA_OPTIONS: "-Duser.home=$SNAP_USER_DATA -Dsun.java2d.opengl=true"
     plugs:
-      - home
-      - desktop
       - desktop-legacy
-      - wayland
-      - unity7
+      - desktop
+      - home
       - opengl
       - serial-port

@@ -106,8 +106,3 @@ In addition, if you have installed the Girinoscope from the Snap Store, there ar
 
 This one is not a bug, but simply a limitation of the application which doesn’t detect when a serial port is added (or removed).
 When you plug something like a USB to serial adapter (eg. an Arduino board), you also need to restart the application to use it.
-
-**Web links are not working in the dialogs.**
-
-It’s a known problem with the Snap version regarding how the JDK try to launch a browser.
-I know there is a workaround, but I didn’t figured it exactly.

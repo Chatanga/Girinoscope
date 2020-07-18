@@ -2,20 +2,19 @@ package org.hihan.girinoscope.ui;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.net.URL;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
 public class Checksum {
 
-    public static byte[] createChecksum(Path path) throws IOException, NoSuchAlgorithmException {
-        try ( InputStream input = Files.newInputStream(path)) {
+    public static byte[] createChecksum(URL url) throws IOException, NoSuchAlgorithmException {
+        try ( InputStream input = url.openStream()) {
             MessageDigest messageDigest = MessageDigest.getInstance("MD5");
             byte[] buffer = new byte[1024];
-            int numRead;
-            while ((numRead = input.read(buffer)) != -1) {
-                messageDigest.update(buffer, 0, numRead);
+            int sizeRead;
+            while ((sizeRead = input.read(buffer)) != -1) {
+                messageDigest.update(buffer, 0, sizeRead);
             }
             return messageDigest.digest();
         }
