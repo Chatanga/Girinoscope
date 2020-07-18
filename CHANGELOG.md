@@ -1,6 +1,6 @@
 # Changelog
 
-## [1.3.1-SNAPSHOT]
+## [1.3.1]
 ### Added
 - Slightly improved status messages.
 - Reinstated the look and feel selection.
