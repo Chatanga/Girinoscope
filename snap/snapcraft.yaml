@@ -1,5 +1,5 @@
 name: girinoscope
-version: '1.3.1'
+version: '1.3.2-SNAPSHOT'
 
 title: Girinoscope
 summary: A simple Java graphical user interface for Girino, a Fast Arduino Oscilloscope
