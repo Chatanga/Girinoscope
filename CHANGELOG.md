@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.3.2-SNAPSHOT]
+### Fixed
+- Removed unneeded build dependencies from the distributed JAR.
+
 ## [1.3.1]
 ### Added
 - Slightly improved status messages.
