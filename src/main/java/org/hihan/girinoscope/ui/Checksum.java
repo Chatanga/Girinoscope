@@ -20,7 +20,10 @@ public class Checksum {
         }
     }
 
-    // See https://stackoverflow.com/questions/9655181/how-to-convert-a-byte-array-to-a-hex-string-in-java
+    /**
+     * @see
+     * https://stackoverflow.com/questions/9655181/how-to-convert-a-byte-array-to-a-hex-string-in-java
+     */
     public static String bytesToHex(byte[] bytes) {
         char[] hexArray = "0123456789ABCDEF".toCharArray();
         char[] hexChars = new char[bytes.length * 2];
