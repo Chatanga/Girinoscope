@@ -1,5 +1,8 @@
 package org.hihan.girinoscope.comm;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -100,7 +103,10 @@ public class Device {
         parameters.put(THRESHOLD, 150);
 
         List<Girino.PrescalerInfo> infos = new LinkedList<>();
-        double[] frequencies = {857_000, 600_000, 500_000, 50_000, 5_000, 500, 50};
+        double defaultFrequency = 16_000_000d / parameters.get(PRESCALER) / 13d;
+        List<Double>frequencies = Arrays.asList(857_000d, 600_000d, 500_000d, 50_000d, 5_000d, 500d, 50d, defaultFrequency);
+        Collections.sort(frequencies);
+        Collections.reverse(frequencies);
         for (double frequency : frequencies) {
             int pseudoPrescaler = (int) (16_000_000 / frequency / 13);
             double adjustedFrequency = 16_000_000.0 / pseudoPrescaler / 13.0;

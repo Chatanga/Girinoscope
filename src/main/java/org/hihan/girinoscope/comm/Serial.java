@@ -86,6 +86,11 @@ public class Serial implements Closeable {
         port.setComPortParameters(DATA_RATE, 8, SerialPort.ONE_STOP_BIT, SerialPort.NO_PARITY);
         port.setFlowControl(SerialPort.FLOW_CONTROL_DISABLED);
 
+        /*
+         * The 'openPort' method is interruptible, but will end with an inappropriate
+         * 'printStackTrace' instead of rethrowing an interrupt itself or, better,
+         * not catching the interrupt.
+         */
         if (port.openPort()) {
             this.port = port;
 

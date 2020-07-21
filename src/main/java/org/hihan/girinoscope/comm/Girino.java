@@ -178,6 +178,11 @@ public class Girino {
                         data = serial.readLine();
                     } while (!data.endsWith(device.getReadyMessage()));
                 } catch (InterruptedException e) {
+                    /*
+                     * The underlying serial port library introduces a delay to
+                     * avoid a rapid closing/opening on the part of the user.
+                     * Interrupting it too fast will defeat this approach...
+                     */
                     disconnect();
                 }
 

@@ -65,7 +65,7 @@ The code optimization consists in applying the [advices](doc/girino_optimization
 [womai](http://www.instructables.com/member/womai/) in the
 [Girino Instructable](http://www.instructables.com/id/Girino-Fast-Arduino-Oscilloscope/).
 
-## Install
+## Installation
 
 ### From the Snap Store
 
@@ -84,11 +84,11 @@ Obviously, since this is a Java application, you need a [JRE 1.7 or higher](http
 ### From source
 
 You just need a [JDK 1.7 or higher](http://www.oracle.com/technetwork/java/javase/downloads/index.html)
-and [Maven](https://maven.apache.org/).
+and [Maven 3.3.9 or higher](https://maven.apache.org/).
 Once these tools installed, a simple `mvn -Dhttps.protocols=TLSv1.2 clean package`
 at the root of this project will do the job.
-On success, you can run the application the same way by issuing a `mvn exec:java`.
-Of course, you can also launch the application without maven using a `java -jar target/Girinoscope-*-dist.jar`.
+On success, you can run the application by issuing a `mvn exec:java`.
+Of course, you can also launch the application without Maven using a `java -jar target/Girinoscope-*-dist.jar`.
 
 Note: the `https.protocols=TLSv1.2` option is required with old Java versions (used by Maven) since
 [June 2018](https://blog.sonatype.com/enhancing-ssl-security-and-http/2-support-for-central).
