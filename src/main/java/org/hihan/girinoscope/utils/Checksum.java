@@ -1,4 +1,4 @@
-package org.hihan.girinoscope.ui;
+package org.hihan.girinoscope.utils;
 
 import java.io.IOException;
 import java.io.InputStream;

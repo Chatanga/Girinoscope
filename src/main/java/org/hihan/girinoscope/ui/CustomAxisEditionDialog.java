@@ -1,5 +1,6 @@
 package org.hihan.girinoscope.ui;
 
+import org.hihan.girinoscope.utils.ui.DialogHelper;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.FlowLayout;

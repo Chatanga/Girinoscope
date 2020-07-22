@@ -1,5 +1,6 @@
 package org.hihan.girinoscope.ui;
 
+import org.hihan.girinoscope.utils.Settings;
 import java.awt.Font;
 import java.awt.Graphics2D;
 import java.awt.Rectangle;

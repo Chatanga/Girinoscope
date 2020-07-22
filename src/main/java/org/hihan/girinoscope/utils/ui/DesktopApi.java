@@ -1,5 +1,6 @@
-package org.hihan.girinoscope.ui;
+package org.hihan.girinoscope.utils.ui;
 
+import org.hihan.girinoscope.utils.Settings;
 import java.awt.Desktop;
 import java.io.BufferedReader;
 import java.io.IOException;

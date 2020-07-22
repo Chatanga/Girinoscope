@@ -1,4 +1,4 @@
-package org.hihan.girinoscope.ui;
+package org.hihan.girinoscope.utils;
 
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -11,6 +11,7 @@ import java.nio.file.Paths;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.hihan.girinoscope.ui.UI;
 
 public class Settings {
 

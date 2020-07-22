@@ -1,5 +1,6 @@
 package org.hihan.girinoscope.ui;
 
+import org.hihan.girinoscope.utils.ui.DesktopApi;
 import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Graphics2D;

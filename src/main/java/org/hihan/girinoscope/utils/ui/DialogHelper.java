@@ -1,4 +1,4 @@
-package org.hihan.girinoscope.ui;
+package org.hihan.girinoscope.utils.ui;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;

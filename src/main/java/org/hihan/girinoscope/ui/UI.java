@@ -1,5 +1,7 @@
 package org.hihan.girinoscope.ui;
 
+import org.hihan.girinoscope.utils.Settings;
+import org.hihan.girinoscope.utils.Checksum;
 import com.fazecast.jSerialComm.SerialPort;
 import java.awt.BorderLayout;
 import java.awt.Color;
