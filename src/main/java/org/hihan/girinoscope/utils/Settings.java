@@ -11,34 +11,10 @@ import java.nio.file.Paths;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.hihan.girinoscope.ui.UI;
 
 public class Settings {
 
-    private static final Logger LOGGER = Logger.getLogger(UI.class.getName());
-
-    public enum OS {
-
-        Linux("linux"), MacOSX("mac"), Windows("win"), Other;
-
-        String[] names;
-
-        OS(String... names) {
-            this.names = names;
-        }
-
-        public static OS resolve() {
-            String osName = System.getProperty("os.name");
-            for (OS os : values()) {
-                for (String name : os.names) {
-                    if (osName.toLowerCase().contains(name)) {
-                        return os;
-                    }
-                }
-            }
-            return Other;
-        }
-    }
+    private static final Logger LOGGER = Logger.getLogger(Settings.class.getName());
 
     private final Properties properties = new Properties();
 

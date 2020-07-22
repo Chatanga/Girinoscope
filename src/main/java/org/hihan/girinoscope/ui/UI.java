@@ -65,6 +65,7 @@ import org.hihan.girinoscope.comm.Girino.PrescalerInfo;
 import org.hihan.girinoscope.comm.Girino.TriggerEventMode;
 import org.hihan.girinoscope.comm.Girino.VoltageReference;
 import org.hihan.girinoscope.comm.Serial;
+import org.hihan.girinoscope.utils.OS;
 
 @SuppressWarnings("serial")
 public class UI extends JFrame {
@@ -72,7 +73,7 @@ public class UI extends JFrame {
     private static final Logger LOGGER = Logger.getLogger(UI.class.getName());
 
     public static void main(String[] args) throws Exception {
-        if (Settings.OS.resolve() == Settings.OS.Linux) {
+        if (OS.resolve() == OS.Linux) {
             System.setProperty("sun.java2d.opengl", "true");
         }
         System.setProperty("awt.useSystemAAFontSettings", "on");

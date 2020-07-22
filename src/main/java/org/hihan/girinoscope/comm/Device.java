@@ -1,6 +1,5 @@
 package org.hihan.girinoscope.comm;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -9,7 +8,6 @@ import java.util.List;
 import java.util.Map;
 import static org.hihan.girinoscope.comm.Girino.Parameter.*;
 
-// TODO Add a properties file loading capability.
 public class Device {
 
     /**

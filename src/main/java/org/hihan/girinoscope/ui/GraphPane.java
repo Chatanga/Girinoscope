@@ -146,6 +146,7 @@ public class GraphPane extends JPanel {
 
     public void setDataStrokeWidth(float width) {
         dataStroke = new BasicStroke(width, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL);
+        repaint();
     }
 
     public void setCoordinateSystem(Axis xAxis, Axis yAxis) {

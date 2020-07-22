@@ -1,6 +1,5 @@
 package org.hihan.girinoscope.utils.ui;
 
-import org.hihan.girinoscope.utils.Settings;
 import java.awt.Desktop;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -10,6 +9,7 @@ import java.net.URI;
 import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.hihan.girinoscope.utils.OS;
 
 /**
  * @see
@@ -24,7 +24,7 @@ public class DesktopApi {
     }
 
     private static boolean systemSpecificBrowse(String what) {
-        switch (Settings.OS.resolve()) {
+        switch (OS.resolve()) {
             case Linux:
                 return startCommand("xdg-open", what) || startCommand("gnome-open", what) || startCommand("kde-open", what);
             case MacOSX:

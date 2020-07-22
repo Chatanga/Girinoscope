@@ -3,6 +3,7 @@
 ## [1.3.2-SNAPSHOT]
 ### Fixed
 - Removed unneeded build dependencies from the distributed JAR.
+- Data stroke width is now applied starting with the current frame.
 
 ## [1.3.1]
 ### Added
