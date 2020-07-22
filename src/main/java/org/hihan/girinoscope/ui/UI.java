@@ -298,7 +298,7 @@ public class UI extends JFrame {
                 int[] value = graphPane.getValues();
                 try ( BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8))) {
                     for (int i = 0; i < value.length; ++i) {
-                        writer.write(String.format("%d;%d", i, value[i]));
+                        writer.write(Integer.toString(value[i]));
                         writer.newLine();
                     }
                 } catch (IOException e) {

@@ -24,8 +24,12 @@ import javax.swing.event.HyperlinkEvent;
 import javax.swing.event.HyperlinkListener;
 import javax.swing.text.AttributeSet;
 import javax.swing.text.Document;
+import javax.swing.text.Element;
+import javax.swing.text.View;
+import javax.swing.text.ViewFactory;
 import javax.swing.text.html.HTMLDocument;
 import javax.swing.text.html.HTMLEditorKit;
+import javax.swing.text.html.ImageView;
 import javax.swing.text.html.StyleSheet;
 
 @SuppressWarnings("serial")
@@ -48,6 +52,7 @@ public class HtmlPane extends JEditorPane {
             String line;
             while ((line = reader.readLine()) != null) {
                 file.append(line);
+                file.append('\n');
             }
             return file.toString();
         }
@@ -73,12 +78,30 @@ public class HtmlPane extends JEditorPane {
     }
 
     public HtmlPane(String text) {
+        System.out.println(text);
         HTMLEditorKit kit = new HTMLEditorKit() {
+            
             @Override
             public Document createDefaultDocument() {
                 HTMLDocument document = (HTMLDocument) super.createDefaultDocument();
+                document.setAsynchronousLoadPriority(-1);
                 document.setBase(Icon.class.getResource("/org/hihan/girinoscope/ui/"));
                 return document;
+            }
+
+            @Override
+            public ViewFactory getViewFactory() {
+                return new HTMLEditorKit.HTMLFactory() {
+
+                    @Override
+                    public View create(Element element) {
+                        View view = super.create(element);
+                        if (view instanceof ImageView) {
+                            ((ImageView) view).setLoadsSynchronously(true);
+                        }
+                        return view;
+                    }
+                };
             }
         };
 
