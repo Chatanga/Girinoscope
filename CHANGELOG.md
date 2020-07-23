@@ -3,6 +3,7 @@
 ## [1.3.2-SNAPSHOT]
 ### Changed
 - Export to CSV in a single column without the index.
+- Stop filtering out serial ports based on their name.
 ### Fixed
 - Removed unneeded build dependencies from the distributed JAR.
 - Data stroke width is now applied starting with the current frame.

@@ -78,7 +78,6 @@ public class HtmlPane extends JEditorPane {
     }
 
     public HtmlPane(String text) {
-        System.out.println(text);
         HTMLEditorKit kit = new HTMLEditorKit() {
             
             @Override

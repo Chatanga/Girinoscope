@@ -5,11 +5,10 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.LinkedList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.regex.Pattern;
 
 /**
  * Reading operations are semi-interruptible here. As long as nothing as been
@@ -27,22 +26,6 @@ import java.util.regex.Pattern;
 public class Serial implements Closeable {
 
     private static final Logger LOGGER = Logger.getLogger(Serial.class.getName());
-
-    /*
-     * I can’t remember why I try to filter the ports available. Any serial
-     * port should work here and there is no need to check if it is a USB
-     * adapter or something else.
-     */
-    private static final Pattern[] ACCEPTABLE_PORT_NAMES = {
-        //
-        Pattern.compile(".*tty\\.usbserial-.+"), // Mac OS X
-        Pattern.compile(".*cu\\.wchusbserial.+"), // Mac OS X
-        Pattern.compile(".*tty\\.usbmodem.+"), // Mac OS X
-        Pattern.compile(".*ttyACM\\d+"), // Linux "modem"
-        Pattern.compile(".*ttyUSB\\d+"), // Linux USB to serial adapter
-        Pattern.compile(".*rfcomm\\d+"), // Linux Bluetooth
-        Pattern.compile(".*COM\\d+"), // Windows
-    };
 
     /*
      * Milliseconds to block while waiting for port open.
@@ -66,19 +49,7 @@ public class Serial implements Closeable {
     private OutputStream output;
 
     public static List<SerialPort> enumeratePorts() {
-        List<SerialPort> ports = new LinkedList<>();
-
-        for (SerialPort port : SerialPort.getCommPorts()) {
-            String portName = port.getSystemPortName();
-            for (Pattern acceptablePortName : ACCEPTABLE_PORT_NAMES) {
-                if (acceptablePortName.matcher(portName).matches()) {
-                    ports.add(port);
-                    break;
-                }
-            }
-        }
-
-        return ports;
+        return Arrays.asList(SerialPort.getCommPorts());
     }
 
     public Serial(SerialPort port) throws IOException {
