@@ -1,6 +1,6 @@
 # Changelog
 
-## [1.3.2-SNAPSHOT]
+## [1.3.2]
 ### Changed
 - Export to CSV in a single column without the index.
 - Stop filtering out serial ports based on their name.
