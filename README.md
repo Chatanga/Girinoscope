@@ -83,7 +83,7 @@ Obviously, since this is a Java application, you need a [JRE 1.7 or higher](http
 
 ### From source
 
-You just need a [JDK 1.7 or higher](http://www.oracle.com/technetwork/java/javase/downloads/index.html)
+You just need a [JDK 1.8 or higher](http://www.oracle.com/technetwork/java/javase/downloads/index.html)
 and [Maven 3.3.9 or higher](https://maven.apache.org/).
 Once these tools installed, a simple `mvn -Dhttps.protocols=TLSv1.2 clean package`
 at the root of this project will do the job.

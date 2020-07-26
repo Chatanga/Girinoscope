@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.3.3-SNAPSHOT]
+### Added
+- Toolbar shortcuts for the acquisition rate and the trigger mode.
+### Changed
+- Switched to JDK 1.8 to accomodate the markdown plugin for Maven.
+
 ## [1.3.2]
 ### Changed
 - Export to CSV in a single column without the index.

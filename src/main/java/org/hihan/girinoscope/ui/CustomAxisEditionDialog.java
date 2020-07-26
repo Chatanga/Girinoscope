@@ -10,8 +10,6 @@ import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
 import java.text.DecimalFormat;
 import java.util.LinkedList;
 import java.util.List;
@@ -157,51 +155,34 @@ public class CustomAxisEditionDialog extends JDialog {
 
     private void constraintInputValues(final List<? extends NumberFormatter> dynamicFormatters) {
 
-        startValueTextField.addPropertyChangeListener("editValid", new PropertyChangeListener() {
-            @Override
-            public void propertyChange(PropertyChangeEvent evt) {
-                startValueTextField.setBackground(startValueTextField.isEditValid() ? null : Color.RED);
+        startValueTextField.addPropertyChangeListener("editValid", e
+                -> startValueTextField.setBackground(startValueTextField.isEditValid() ? null : Color.RED));
+
+        startValueTextField.addPropertyChangeListener("value", e -> {
+            double startValue = getDoubleValue(startValueTextField);
+            double endValue = getDoubleValue(endValueTextField);
+            double increment = getDoubleValue(incrementTextField);
+            if (endValue - startValue < increment) {
+                endValueTextField.setValue(startValue + increment);
             }
         });
 
-        startValueTextField.addPropertyChangeListener("value", new PropertyChangeListener() {
-            @Override
-            public void propertyChange(PropertyChangeEvent evt) {
-                double startValue = getDoubleValue(startValueTextField);
-                double endValue = getDoubleValue(endValueTextField);
-                double increment = getDoubleValue(incrementTextField);
-                if (endValue - startValue < increment) {
-                    endValueTextField.setValue(startValue + increment);
-                }
+        endValueTextField.addPropertyChangeListener("editValid", e
+                -> endValueTextField.setBackground(endValueTextField.isEditValid() ? null : Color.RED));
+
+        endValueTextField.addPropertyChangeListener("value", e -> {
+            double startValue = getDoubleValue(startValueTextField);
+            double endValue = getDoubleValue(endValueTextField);
+            double increment = getDoubleValue(incrementTextField);
+            if (endValue - startValue < increment) {
+                startValueTextField.setValue(endValue - increment);
             }
         });
 
-        endValueTextField.addPropertyChangeListener("editValid", new PropertyChangeListener() {
-            @Override
-            public void propertyChange(PropertyChangeEvent evt) {
-                endValueTextField.setBackground(endValueTextField.isEditValid() ? null : Color.RED);
-            }
-        });
-
-        endValueTextField.addPropertyChangeListener("value", new PropertyChangeListener() {
-            @Override
-            public void propertyChange(PropertyChangeEvent evt) {
-                double startValue = getDoubleValue(startValueTextField);
-                double endValue = getDoubleValue(endValueTextField);
-                double increment = getDoubleValue(incrementTextField);
-                if (endValue - startValue < increment) {
-                    startValueTextField.setValue(endValue - increment);
-                }
-            }
-        });
-
-        incrementTextField.addPropertyChangeListener("value", new PropertyChangeListener() {
-            @Override
-            public void propertyChange(PropertyChangeEvent evt) {
-                double increment = getDoubleValue(incrementTextField);
-                if (increment < 0) {
-                    incrementTextField.setValue(-increment);
-                }
+        incrementTextField.addPropertyChangeListener("value", e -> {
+            double increment = getDoubleValue(incrementTextField);
+            if (increment < 0) {
+                incrementTextField.setValue(-increment);
             }
         });
 

@@ -21,7 +21,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.swing.JEditorPane;
 import javax.swing.event.HyperlinkEvent;
-import javax.swing.event.HyperlinkListener;
 import javax.swing.text.AttributeSet;
 import javax.swing.text.Document;
 import javax.swing.text.Element;
@@ -79,7 +78,7 @@ public class HtmlPane extends JEditorPane {
 
     public HtmlPane(String text) {
         HTMLEditorKit kit = new HTMLEditorKit() {
-            
+
             @Override
             public Document createDefaultDocument() {
                 HTMLDocument document = (HTMLDocument) super.createDefaultDocument();
@@ -112,18 +111,15 @@ public class HtmlPane extends JEditorPane {
         StyleSheet styleSheet = ((HTMLDocument) super.getDocument()).getStyleSheet();
         styleSheet.addRule("body {bgcolor: white; font-family: Sans-Serif;}");
 
-        super.addHyperlinkListener(new HyperlinkListener() {
-            @Override
-            public void hyperlinkUpdate(final HyperlinkEvent event) {
-                if (event.getEventType() == HyperlinkEvent.EventType.ACTIVATED) {
-                    final String href = getHref(event);
-                    try {
-                        if (!DesktopApi.browse(new URI(href))) {
-                            LOGGER.log(Level.WARNING, "Can’t open link {0}.", href);
-                        }
-                    } catch (URISyntaxException e) {
-                        LOGGER.log(Level.WARNING, "Malformed URL " + href, e);
+        super.addHyperlinkListener((final HyperlinkEvent event) -> {
+            if (event.getEventType() == HyperlinkEvent.EventType.ACTIVATED) {
+                final String href = getHref(event);
+                try {
+                    if (!DesktopApi.browse(new URI(href))) {
+                        LOGGER.log(Level.WARNING, "Can’t open link {0}.", href);
                     }
+                } catch (URISyntaxException e) {
+                    LOGGER.log(Level.WARNING, "Malformed URL " + href, e);
                 }
             }
         });

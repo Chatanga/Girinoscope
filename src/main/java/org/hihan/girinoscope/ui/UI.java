@@ -1,18 +1,16 @@
 package org.hihan.girinoscope.ui;
 
-import org.hihan.girinoscope.utils.Settings;
-import org.hihan.girinoscope.utils.Checksum;
 import com.fazecast.jSerialComm.SerialPort;
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.Dimension;
+import java.awt.FlowLayout;
 import java.awt.Image;
 import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import java.awt.event.ItemEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -23,6 +21,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.NoSuchAlgorithmException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.EnumMap;
 import java.util.HashMap;
@@ -30,7 +29,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.Callable;
+import java.util.Observable;
+import java.util.TreeMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -38,19 +38,26 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.AbstractAction;
 import javax.swing.AbstractButton;
 import javax.swing.Action;
 import javax.swing.ButtonGroup;
+import javax.swing.DefaultListCellRenderer;
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JCheckBoxMenuItem;
-import javax.swing.JComponent;
+import javax.swing.JComboBox;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JList;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
+import javax.swing.JPanel;
+import javax.swing.JToggleButton;
 import javax.swing.JToolBar;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
@@ -58,6 +65,7 @@ import javax.swing.UIManager;
 import javax.swing.UIManager.LookAndFeelInfo;
 import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.WindowConstants;
+import javax.swing.border.EmptyBorder;
 import org.hihan.girinoscope.comm.Device;
 import org.hihan.girinoscope.comm.Girino;
 import org.hihan.girinoscope.comm.Girino.Parameter;
@@ -65,7 +73,9 @@ import org.hihan.girinoscope.comm.Girino.PrescalerInfo;
 import org.hihan.girinoscope.comm.Girino.TriggerEventMode;
 import org.hihan.girinoscope.comm.Girino.VoltageReference;
 import org.hihan.girinoscope.comm.Serial;
+import org.hihan.girinoscope.utils.Checksum;
 import org.hihan.girinoscope.utils.OS;
+import org.hihan.girinoscope.utils.Settings;
 
 @SuppressWarnings("serial")
 public class UI extends JFrame {
@@ -86,16 +96,36 @@ public class UI extends JFrame {
             LOGGER.log(Level.WARNING, "When setting the look and feel at startup.", e);
         }
 
-        SwingUtilities.invokeAndWait(new Runnable() {
-            @Override
-            public void run() {
-                JFrame frame = new UI();
-                frame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
-                frame.pack();
-                frame.setLocationRelativeTo(null);
-                frame.setVisible(true);
-            }
+        SwingUtilities.invokeAndWait(() -> {
+            JFrame frame = new UI();
+            frame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
+            frame.pack();
+            frame.setLocationRelativeTo(null);
+            frame.setVisible(true);
         });
+    }
+
+    private static class ObservableValue<T> extends Observable {
+
+        private T value;
+
+        public ObservableValue() {
+            this(null);
+        }
+
+        public ObservableValue(T value) {
+            this.value = value;
+        }
+
+        public T get() {
+            return value;
+        }
+
+        public void set(T value) {
+            this.value = value;
+            setChanged();
+            notifyObservers(value);
+        }
     }
 
     private final Settings settings = new Settings();
@@ -107,15 +137,28 @@ public class UI extends JFrame {
 
     /*
      * The selected device on which the Girino firmware is running (could be
-     * different from the one currently configured for the Girino).
+     * different from the one currently configured for the Girino). Its value
+     * should only be changed using {@link #setDevice}.
      */
-    private Device device;
+    private final ObservableValue<Device> device = new ObservableValue<>();
 
     /*
      * The currently selected serial port used to connect to the Girino
      * hardware.
      */
     private SerialPort port;
+
+    /*
+     * A device specific set of values. Any observer on it will be deleted on a
+     * device change.
+     */
+    private final ObservableValue<PrescalerInfo> prescalerInfo = new ObservableValue<>();
+
+    /*
+     * A device specific set of values. Any observer on it will be deleted on a
+     * device change.
+     */
+    private final ObservableValue<TriggerEventMode> triggerEventMode = new ObservableValue<>();
 
     /*
      * The edited Girino settings (could be different from the ones uploaded to
@@ -181,19 +224,16 @@ public class UI extends JFrame {
 
         private void updateConnection() throws Exception {
             synchronized (UI.this) {
-                frozenDevice = device;
+                frozenDevice = device.get();
                 frozenPort = port;
                 frozenParameters.putAll(parameters);
             }
 
             setStatus("blue", "Contacting Girino on %s...", frozenPort.getSystemPortName());
 
-            Future<Void> connection = executor.submit(new Callable<Void>() {
-                @Override
-                public Void call() throws Exception {
-                    girino.connect(frozenDevice, frozenPort, frozenParameters);
-                    return null;
-                }
+            Future<Void> connection = executor.submit(() -> {
+                girino.connect(frozenDevice, frozenPort, frozenParameters);
+                return null;
             });
             try {
                 connection.get(15, TimeUnit.SECONDS);
@@ -217,7 +257,7 @@ public class UI extends JFrame {
                     parameters.put(Parameter.THRESHOLD, graphPane.getThreshold());
                     parameters.put(Parameter.WAIT_DURATION, graphPane.getWaitDuration());
                     updateConnection
-                            = frozenDevice != device
+                            = frozenDevice != device.get()
                             || frozenPort != port
                             || !calculateChanges(frozenParameters).isEmpty();
                 }
@@ -228,12 +268,7 @@ public class UI extends JFrame {
                     terminated = true;
                 } else {
                     if (acquisition == null) {
-                        acquisition = executor.submit(new Callable<byte[]>() {
-                            @Override
-                            public byte[] call() throws Exception {
-                                return girino.acquireData();
-                            }
-                        });
+                        acquisition = executor.submit(girino::acquireData);
                     }
                     try {
                         byte[] buffer = acquisition.get(1, TimeUnit.SECONDS);
@@ -276,109 +311,85 @@ public class UI extends JFrame {
             } catch (ExecutionException e) {
                 LOGGER.log(Level.WARNING, "When acquiring data.", e);
                 setStatus("red", e.getCause().getMessage());
-            } catch (Exception e) {
-                setStatus("red", e.getMessage());
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
             }
         }
     }
 
-    private final Action exportLastFrameAction = new AbstractAction("Export last frame", Icon.get("document-save.png")) {
-        {
-            putValue(Action.SHORT_DESCRIPTION, "Export the last time frame to CSV.");
-        }
-
-        @Override
-        public void actionPerformed(ActionEvent event) {
-            JFileChooser fileChooser = new JFileChooser();
-            fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
-            DateFormat format = new SimpleDateFormat("yyyy_MM_dd-HH_mm");
-            fileChooser.setSelectedFile(new File("frame-" + format.format(new Date()) + ".csv"));
-            if (fileChooser.showSaveDialog(UI.this) == JFileChooser.APPROVE_OPTION) {
-                File file = fileChooser.getSelectedFile();
-                int[] value = graphPane.getValues();
-                try ( BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8))) {
-                    for (int i = 0; i < value.length; ++i) {
-                        writer.write(Integer.toString(value[i]));
-                        writer.newLine();
+    private final Action exportLastFrameAction = makeAction(
+            "Export last frame",
+            "Export the last time frame to CSV.",
+            Icon.get("document-save.png"),
+            event -> {
+                JFileChooser fileChooser = new JFileChooser();
+                fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+                DateFormat format = new SimpleDateFormat("yyyy_MM_dd-HH_mm");
+                fileChooser.setSelectedFile(new File("frame-" + format.format(new Date()) + ".csv"));
+                if (fileChooser.showSaveDialog(UI.this) == JFileChooser.APPROVE_OPTION) {
+                    File file = fileChooser.getSelectedFile();
+                    int[] value = graphPane.getValues();
+                    try ( BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8))) {
+                        for (int i = 0; i < value.length; ++i) {
+                            writer.write(Integer.toString(value[i]));
+                            writer.newLine();
+                        }
+                    } catch (IOException e) {
+                        setStatus("red", e.getMessage());
                     }
-                } catch (IOException e) {
-                    setStatus("red", e.getMessage());
                 }
-            }
-        }
-    };
+            });
 
-    private final Action stopAcquiringAction = new AbstractAction("Stop acquiring", Icon.get("media-playback-stop.png")) {
-        {
-            putValue(Action.SHORT_DESCRIPTION, "Stop acquiring data from Girino.");
-        }
+    private final Action stopAcquiringAction = makeAction(
+            "Stop acquiring",
+            "Stop acquiring data from Girino.",
+            Icon.get("media-playback-stop.png"),
+            event -> currentDataAcquisitionTask.cancel(true));
 
-        @Override
-        public void actionPerformed(ActionEvent event) {
-            currentDataAcquisitionTask.cancel(true);
-        }
-    };
+    private final Action startAcquiringAction = makeAction(
+            "Start acquiring a single frame",
+            "Start acquiring a single frame of data from Girino.",
+            Icon.get("go-last.png"),
+            event -> {
+                synchronized (UI.this) {
+                    parameters.put(Parameter.THRESHOLD, graphPane.getThreshold());
+                    parameters.put(Parameter.WAIT_DURATION, graphPane.getWaitDuration());
+                }
+                currentDataAcquisitionTask = new DataAcquisitionTask(false);
+                currentDataAcquisitionTask.execute();
+            });
 
-    private final Action startAcquiringAction = new AbstractAction("Start acquiring a single frame", Icon.get("go-last.png")) {
-        {
-            putValue(Action.SHORT_DESCRIPTION, "Start acquiring a single frame of data from Girino.");
-        }
+    private final Action startAcquiringInLoopAction = makeAction(
+            "Start acquiring in loop",
+            "Start acquiring data in loop from Girino.",
+            Icon.get("go-next.png"),
+            event -> {
+                synchronized (UI.this) {
+                    parameters.put(Parameter.THRESHOLD, graphPane.getThreshold());
+                    parameters.put(Parameter.WAIT_DURATION, graphPane.getWaitDuration());
+                }
+                currentDataAcquisitionTask = new DataAcquisitionTask(true);
+                currentDataAcquisitionTask.execute();
+            });
 
-        @Override
-        public void actionPerformed(ActionEvent event) {
-            synchronized (UI.this) {
-                parameters.put(Parameter.THRESHOLD, graphPane.getThreshold());
-                parameters.put(Parameter.WAIT_DURATION, graphPane.getWaitDuration());
-            }
-            currentDataAcquisitionTask = new DataAcquisitionTask(false);
-            currentDataAcquisitionTask.execute();
-        }
-    };
+    private final Action setDisplayedSignalReferential = makeAction(
+            "Change signal interpretation",
+            event -> {
+                Axis.Builder builder = CustomAxisEditionDialog.edit(UI.this, yAxisBuilder);
+                if (builder != null) {
+                    yAxisBuilder = builder;
+                    yAxisBuilder.save(settings, device.get().id + ".");
+                    graphPane.setYCoordinateSystem(yAxisBuilder.build());
+                }
+            });
 
-    private final Action startAcquiringInLoopAction = new AbstractAction("Start acquiring in loop", Icon.get("go-next.png")) {
-        {
-            putValue(Action.SHORT_DESCRIPTION, "Start acquiring data in loop from Girino.");
-        }
+    private final Action aboutAction = makeAction(
+            "About Girinoscope",
+            event -> new AboutDialog(UI.this).setVisible(true));
 
-        @Override
-        public void actionPerformed(ActionEvent event) {
-            synchronized (UI.this) {
-                parameters.put(Parameter.THRESHOLD, graphPane.getThreshold());
-                parameters.put(Parameter.WAIT_DURATION, graphPane.getWaitDuration());
-            }
-            currentDataAcquisitionTask = new DataAcquisitionTask(true);
-            currentDataAcquisitionTask.execute();
-        }
-    };
-
-    private final Action setDisplayedSignalReferentia = new AbstractAction("Change signal interpretation") {
-
-        @Override
-        public void actionPerformed(ActionEvent event) {
-            Axis.Builder builder = CustomAxisEditionDialog.edit(UI.this, yAxisBuilder);
-            if (builder != null) {
-                yAxisBuilder = builder;
-                yAxisBuilder.save(settings, device.id + ".");
-                graphPane.setYCoordinateSystem(yAxisBuilder.build());
-            }
-        }
-    };
-
-    private final Action aboutAction = new AbstractAction("About Girinoscope") {
-
-        @Override
-        public void actionPerformed(ActionEvent event) {
-            new AboutDialog(UI.this).setVisible(true);
-        }
-    };
-
-    private final Action exitAction = new AbstractAction("Quit") {
-
-        @Override
-        public void actionPerformed(ActionEvent event) {
-            dispose();
-        }
-    };
+    private final Action exitAction = makeAction(
+            "Quit",
+            event -> dispose());
 
     public UI() {
         super.setTitle("Girinoscope");
@@ -394,6 +405,14 @@ public class UI extends JFrame {
         graphPane = new GraphPane();
         graphPane.setYCoordinateSystem(yAxisBuilder.build());
         graphPane.setPreferredSize(new Dimension(800, 600));
+        device.addObserver((o, v) -> {
+            graphPane.setFrameFormat(device.get().getFrameFormat());
+            graphPane.setThreshold(parameters.get(Parameter.THRESHOLD));
+            graphPane.setWaitDuration(parameters.get(Parameter.WAIT_DURATION));
+
+            yAxisBuilder.load(settings, device.get().id + ".");
+            graphPane.setYCoordinateSystem(yAxisBuilder.build());
+        });
         super.add(graphPane, BorderLayout.CENTER);
 
         super.setJMenuBar(createMenuBar());
@@ -416,31 +435,20 @@ public class UI extends JFrame {
             setStatus("red", "No serial port detected.");
         }
 
-        super.addWindowListener(new WindowAdapter() {
+        setLastDevice();
 
-            @Override
-            public void windowClosed(WindowEvent e) {
-                settings.save();
-            }
+        super.addWindowListener(new WindowAdapter() {
 
             @Override
             public void windowOpened(WindowEvent arg0) {
                 showChangeLogDialogIfNeeded();
             }
-        });
-    }
 
-    private void showChangeLogDialogIfNeeded() {
-        try {
-            URL url = ChangeLogDialog.class.getResource("CHANGELOG.html");
-            String changeLogCheckSum = Checksum.bytesToHex(Checksum.createChecksum(url));
-            if (!changeLogCheckSum.equals(settings.get("changeLogCheckSum", null))) {
-                settings.put("changeLogCheckSum", changeLogCheckSum);
-                new ChangeLogDialog(UI.this).setVisible(true);
+            @Override
+            public void windowClosed(WindowEvent e) {
+                settings.save();
             }
-        } catch (IOException | NoSuchAlgorithmException e) {
-            LOGGER.log(Level.WARNING, "When calculation the change log checksum.", e);
-        }
+        });
     }
 
     /*
@@ -466,6 +474,38 @@ public class UI extends JFrame {
         super.dispose();
     }
 
+    private void showChangeLogDialogIfNeeded() {
+        try {
+            URL url = ChangeLogDialog.class.getResource("CHANGELOG.html");
+            String changeLogCheckSum = Checksum.bytesToHex(Checksum.createChecksum(url));
+            if (!changeLogCheckSum.equals(settings.get("changeLogCheckSum", null))) {
+                settings.put("changeLogCheckSum", changeLogCheckSum);
+                new ChangeLogDialog(UI.this).setVisible(true);
+            }
+        } catch (IOException | NoSuchAlgorithmException e) {
+            LOGGER.log(Level.WARNING, "When calculation the change log checksum.", e);
+        }
+    }
+
+    private void setLastDevice() {
+        String deviceName = settings.get("device", null);
+        setDevice(Arrays.stream(Device.DEVICES)
+                .filter(d -> Objects.equals(deviceName, d.id))
+                .findFirst()
+                .orElse(Device.DEVICES[0]));
+    }
+
+    private void setDevice(Device newDevice) {
+        prescalerInfo.deleteObservers();
+        triggerEventMode.deleteObservers();
+        synchronized (UI.this) {
+            parameters = newDevice.getDefaultParameters(new EnumMap<>(Parameter.class));
+            // Device are read-only and only the instance change need to be guarded.
+            device.set(newDevice);
+        }
+        settings.put("device", newDevice.id);
+    }
+
     private JMenuBar createMenuBar() {
         JMenuBar menuBar = new JMenuBar();
 
@@ -478,7 +518,7 @@ public class UI extends JFrame {
         menuBar.add(girinoMenu);
 
         JMenu displayMenu = new JMenu("Display");
-        displayMenu.add(setDisplayedSignalReferentia);
+        displayMenu.add(setDisplayedSignalReferential);
         displayMenu.add(createDataStrokeWidthMenu());
         displayMenu.add(createThemeMenu());
         menuBar.add(displayMenu);
@@ -491,57 +531,37 @@ public class UI extends JFrame {
     }
 
     private void createDynamicDeviceMenu(final JMenu girinoMenu) {
-        Device selectedDevice = null;
-        String deviceName = settings.get("device", null);
-        for (final Device otherDevice : Device.DEVICES) {
-            if (Objects.equals(deviceName, otherDevice.id)) {
-                selectedDevice = otherDevice;
-                break;
-            }
-        }
-
         final JMenu menu = new JMenu("Device");
-        ButtonGroup group = new ButtonGroup();
         for (final Device newDevice : Device.DEVICES) {
-            Action setDevice = new AbstractAction(newDevice.description) {
+            final JCheckBoxMenuItem menuItem = new JCheckBoxMenuItem(makeAction(newDevice.description, event -> setDevice(newDevice)));
+            menu.add(menuItem);
 
-                @Override
-                public void actionPerformed(ActionEvent event) {
-                    synchronized (UI.this) {
-                        device = newDevice;
-                        parameters = newDevice.getDefaultParameters(new EnumMap<Parameter, Integer>(Parameter.class));
-                    }
-                    graphPane.setFrameFormat(device.getFrameFormat());
-                    graphPane.setThreshold(parameters.get(Parameter.THRESHOLD));
-                    graphPane.setWaitDuration(parameters.get(Parameter.WAIT_DURATION));
-
-                    yAxisBuilder.load(settings, device.id + ".");
-                    graphPane.setYCoordinateSystem(yAxisBuilder.build());
+            device.addObserver((o, v) -> {
+                if (device.get() == newDevice) {
+                    menuItem.setSelected(true);
 
                     girinoMenu.removeAll();
                     girinoMenu.add(menu);
+
                     girinoMenu.add(createSerialMenu());
-                    if (device.isUserConfigurable(Parameter.PRESCALER)) {
-                        girinoMenu.add(createPrescalerMenu(device));
+
+                    if (newDevice.isUserConfigurable(Parameter.PRESCALER)) {
+                        Map<PrescalerInfo, Action> prescalerActions = createPrescalerActions(newDevice);
+                        girinoMenu.add(createPrescalerMenu(prescalerActions));
                     }
-                    if (device.isUserConfigurable(Parameter.TRIGGER_EVENT)) {
-                        girinoMenu.add(createTriggerEventMenu());
+
+                    if (newDevice.isUserConfigurable(Parameter.TRIGGER_EVENT)) {
+                        Map<TriggerEventMode, Action> triggerActions = createTriggerActions();
+                        girinoMenu.add(createTriggerEventMenu(triggerActions));
                     }
-                    if (device.isUserConfigurable(Parameter.VOLTAGE_REFERENCE)) {
+
+                    if (newDevice.isUserConfigurable(Parameter.VOLTAGE_REFERENCE)) {
                         girinoMenu.add(createVoltageReferenceMenu());
                     }
-
-                    settings.put("device", device.id);
+                } else {
+                    menuItem.setSelected(false);
                 }
-            };
-            AbstractButton button = new JCheckBoxMenuItem(setDevice);
-            if (selectedDevice == null && device == null || newDevice == selectedDevice) {
-                button.doClick();
-            }
-
-            group.add(button);
-
-            menu.add(button);
+            });
         }
     }
 
@@ -549,13 +569,7 @@ public class UI extends JFrame {
         JMenu menu = new JMenu("Serial port");
         ButtonGroup group = new ButtonGroup();
         for (final SerialPort newPort : Serial.enumeratePorts()) {
-            Action setSerialPort = new AbstractAction(newPort.getSystemPortName()) {
-
-                @Override
-                public void actionPerformed(ActionEvent event) {
-                    port = newPort;
-                }
-            };
+            Action setSerialPort = makeAction(newPort.getSystemPortName(), event -> port = newPort);
             AbstractButton button = new JCheckBoxMenuItem(setSerialPort);
             if (port == null) {
                 button.doClick();
@@ -566,35 +580,215 @@ public class UI extends JFrame {
         return menu;
     }
 
-    private JMenu createPrescalerMenu(Device potentialDevice) {
+    /*
+     * To be called when the {@link device} is set. Will add an observer on
+     * {@link prescalerInfo} meant to be deleted when the {@link device} is
+     * changed.
+     */
+    private JMenu createPrescalerMenu(Map<PrescalerInfo, Action> prescalerActions) {
         JMenu menu = new JMenu("Acquisition rate / Time frame");
-        ButtonGroup group = new ButtonGroup();
-        for (final PrescalerInfo info : potentialDevice.getPrescalerInfoValues()) {
-            Action setPrescaler = new AbstractAction(format(info)) {
-
-                @Override
-                public void actionPerformed(ActionEvent event) {
-                    synchronized (UI.this) {
-                        parameters.put(Parameter.PRESCALER, info.value);
-                    }
-                    String xFormat = info.timeframe > 0.005 ? "#,##0 ms" : "#,##0.0 ms";
-                    Axis xAxis = new Axis(0, info.timeframe * 1000, xFormat);
-                    graphPane.setXCoordinateSystem(xAxis);
-                }
-            };
-            AbstractButton button = new JCheckBoxMenuItem(setPrescaler);
+        for (Map.Entry<PrescalerInfo, Action> prescalerAction : prescalerActions.entrySet()) {
+            final PrescalerInfo info = prescalerAction.getKey();
+            Action action = prescalerAction.getValue();
+            final AbstractButton button = new JCheckBoxMenuItem(action);
             if (info.reallyTooFast) {
                 button.setForeground(Color.RED.darker());
             } else if (info.tooFast) {
                 button.setForeground(Color.ORANGE.darker());
             }
-            if (info.value == parameters.get(Parameter.PRESCALER)) {
+            prescalerInfo.addObserver((o, value) -> button.setSelected(info == value));
+            button.setSelected(info == prescalerInfo.get());
+            menu.add(button);
+        }
+        return menu;
+    }
+
+    /*
+     * To be called when the {@link device} is set. Will add an observer on
+     * {@link triggerEventMode} meant to be deleted when the {@link device} is
+     * changed.
+     */
+    private JMenu createTriggerEventMenu(Map<TriggerEventMode, Action> triggerActions) {
+        JMenu menu = new JMenu("Trigger event mode");
+        for (Map.Entry<TriggerEventMode, Action> triggerAction : triggerActions.entrySet()) {
+            final TriggerEventMode mode = triggerAction.getKey();
+            Action action = triggerAction.getValue();
+            final AbstractButton button = new JCheckBoxMenuItem(action);
+            triggerEventMode.addObserver((Observable o, Object value) -> button.setSelected(mode == value));
+            button.setSelected(mode == triggerEventMode.get());
+            menu.add(button);
+        }
+        return menu;
+    }
+
+    private JMenu createVoltageReferenceMenu() {
+        JMenu menu = new JMenu("Voltage reference");
+        ButtonGroup group = new ButtonGroup();
+        for (final VoltageReference reference : VoltageReference.values()) {
+            Action setPrescaler = makeAction(reference.description, event -> {
+                synchronized (UI.this) {
+                    parameters.put(Parameter.VOLTAGE_REFERENCE, reference.value);
+                }
+            });
+            AbstractButton button = new JCheckBoxMenuItem(setPrescaler);
+            if (reference.value == parameters.get(Parameter.VOLTAGE_REFERENCE)) {
                 button.doClick();
             }
             group.add(button);
             menu.add(button);
         }
         return menu;
+    }
+
+    private JMenu createDataStrokeWidthMenu() {
+        JMenu menu = new JMenu("Data stroke width");
+        ButtonGroup group = new ButtonGroup();
+        for (final int width : new int[]{1, 2, 3}) {
+            Action setStrokeWidth = makeAction(width + " px", event -> graphPane.setDataStrokeWidth(width));
+            AbstractButton button = new JCheckBoxMenuItem(setStrokeWidth);
+            if (width == 1) {
+                button.doClick();
+            }
+            group.add(button);
+            menu.add(button);
+        }
+        return menu;
+    }
+
+    private JMenu createThemeMenu() {
+        String selectedLafClassName = settings.get("lookAndFeel", UIManager.getSystemLookAndFeelClassName());
+        JMenu menu = new JMenu("Theme");
+        ButtonGroup group = new ButtonGroup();
+        for (final LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
+            final String lafClassName = info.getClassName();
+            Action setLnF = makeAction(info.getName(), event -> {
+                try {
+                    UIManager.setLookAndFeel(lafClassName);
+                    SwingUtilities.updateComponentTreeUI(getRootPane());
+                    settings.put("lookAndFeel", lafClassName);
+                } catch (ReflectiveOperationException | UnsupportedLookAndFeelException e) {
+                    LOGGER.log(Level.WARNING, "When setting the look and feel.", e);
+                    setStatus("red", "Failed to set the look and feel.");
+                }
+            });
+
+            final AbstractButton button = new JCheckBoxMenuItem(setLnF);
+            if (Objects.equals(selectedLafClassName, lafClassName)) {
+                button.setSelected(true);
+            }
+            group.add(button);
+            menu.add(button);
+        }
+        return menu;
+    }
+
+    private JToolBar createToolBar() {
+        final JToolBar toolBar = new JToolBar();
+        toolBar.setFloatable(false);
+
+        final JButton start = toolBar.add(startAcquiringAction);
+        final JButton startLooping = toolBar.add(startAcquiringInLoopAction);
+        final JButton stop = toolBar.add(stopAcquiringAction);
+        final AtomicReference<JButton> lastStart = new AtomicReference<>(startLooping);
+        start.addActionListener(event -> lastStart.set(start));
+        startLooping.addActionListener(event -> lastStart.set(start));
+        stop.addPropertyChangeListener("enabled", event -> {
+            if (stop.isEnabled()) {
+                stop.requestFocusInWindow();
+            } else {
+                lastStart.get().requestFocusInWindow();
+            }
+        });
+
+        toolBar.add(exportLastFrameAction);
+
+        toolBar.addSeparator();
+
+        final JPanel dynamicToolBarContent = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
+        dynamicToolBarContent.setOpaque(false);
+        toolBar.add(dynamicToolBarContent);
+
+        device.addObserver((o, v) -> {
+            dynamicToolBarContent.removeAll();
+
+            if (device.get().isUserConfigurable(Parameter.PRESCALER)) {
+                Map<PrescalerInfo, Action> prescalerActions = createPrescalerActions(device.get());
+                dynamicToolBarContent.add(new JLabel("Acquisition"));
+                dynamicToolBarContent.add(createPrescalerComboBox(prescalerActions));
+            }
+            if (device.get().isUserConfigurable(Parameter.TRIGGER_EVENT)) {
+                Map<TriggerEventMode, Action> triggerActions = createTriggerActions();
+                dynamicToolBarContent.add(new JLabel("Trigger"));
+                dynamicToolBarContent.add(createTriggerRadioButtonPane(triggerActions));
+            }
+
+            toolBar.revalidate();
+        });
+
+        return toolBar;
+    }
+
+    /*
+     * To be called when the {@link device} is set. Will add an observer on
+     * {@link prescalerInfo} meant to be deleted when the {@link device} is
+     * changed.
+     */
+    private JComboBox<PrescalerInfo> createPrescalerComboBox(final Map<PrescalerInfo, Action> prescalerActions) {
+        final JComboBox<PrescalerInfo> comboBox = new JComboBox<>();
+        comboBox.setFocusable(false);
+        comboBox.setToolTipText("Acquisition rate / Time frame");
+
+        comboBox.setRenderer((JList<? extends PrescalerInfo> list, PrescalerInfo info, int index, boolean isSelected, boolean cellHasFocus) -> {
+            /*
+             * Recreating this renderer is "costly", but it is a simple way to
+             * keep it fully up to date with the current LaF. I don’t know if it
+             * is a shortcoming of Swing or a(nother) bug in the GTK+ LaF.
+             */
+            DefaultListCellRenderer defaultRenderer = new DefaultListCellRenderer();
+
+            Component c = defaultRenderer.getListCellRendererComponent(list, format(info), index, isSelected, cellHasFocus);
+            if (info.reallyTooFast) {
+                defaultRenderer.setForeground(Color.RED.darker());
+            } else if (info.tooFast) {
+                defaultRenderer.setForeground(Color.ORANGE.darker());
+            }
+            defaultRenderer.setBorder(new EmptyBorder(7, 4, 7, 4));
+            return c;
+        });
+
+        prescalerActions.keySet().forEach(comboBox::addItem);
+
+        comboBox.addItemListener(event -> {
+            if (event.getStateChange() == ItemEvent.SELECTED) {
+                PrescalerInfo info = (PrescalerInfo) event.getItem();
+                prescalerActions.get(info).actionPerformed(null);
+            }
+        });
+
+        prescalerInfo.addObserver((o, value) -> comboBox.setSelectedItem((PrescalerInfo) value));
+        comboBox.setSelectedItem(prescalerInfo.get());
+
+        return comboBox;
+    }
+
+    /*
+     * To be called when the {@link device} is set. Will add an observer on
+     * {@link triggerEventMode} meant to be deleted when the {@link device} is
+     * changed.
+     */
+    private JPanel createTriggerRadioButtonPane(final Map<TriggerEventMode, Action> triggerActions) {
+        JPanel panel = new JPanel(new FlowLayout());
+        panel.setOpaque(false);
+        triggerActions.forEach((mode, action) -> {
+            final JToggleButton button = new JToggleButton(action);
+            button.setFocusable(false);
+            button.setText(null);
+            button.setToolTipText(mode.description);
+            triggerEventMode.addObserver((o, value) -> button.setSelected(mode == (TriggerEventMode) value));
+            button.setSelected(mode == triggerEventMode.get());
+            panel.add(button);
+        });
+        return panel;
     }
 
     private static String format(PrescalerInfo info) {
@@ -620,138 +814,41 @@ public class UI extends JFrame {
                 timeframe, timeUnits[timeUnitIndex]);
     }
 
-    private JMenu createTriggerEventMenu() {
-        JMenu menu = new JMenu("Trigger event mode");
-        ButtonGroup group = new ButtonGroup();
+    private Map<PrescalerInfo, Action> createPrescalerActions(Device potentialDevice) {
+        Map<PrescalerInfo, Action> prescalerActions = new TreeMap<>((leftInfo, rightInfo) -> Integer.compare(leftInfo.value, rightInfo.value));
+        for (final PrescalerInfo info : potentialDevice.getPrescalerInfoValues()) {
+            Action setPrescaler = makeAction(format(info), event -> {
+                synchronized (UI.this) {
+                    parameters.put(Parameter.PRESCALER, info.value);
+                }
+                String xFormat = info.timeframe > 0.005 ? "#,##0 ms" : "#,##0.0 ms";
+                Axis xAxis = new Axis(0, info.timeframe * 1000, xFormat);
+                graphPane.setXCoordinateSystem(xAxis);
+                prescalerInfo.set(info);
+            });
+            prescalerActions.put(info, setPrescaler);
+            if (info.value == parameters.get(Parameter.PRESCALER)) {
+                setPrescaler.actionPerformed(null);
+            }
+        }
+        return prescalerActions;
+    }
+
+    private Map<TriggerEventMode, Action> createTriggerActions() {
+        Map<TriggerEventMode, Action> triggerActions = new TreeMap<>((leftMode, rightMode) -> Integer.compare(leftMode.value, rightMode.value));
         for (final TriggerEventMode mode : TriggerEventMode.values()) {
-            Action setPrescaler = new AbstractAction(mode.description) {
-
-                @Override
-                public void actionPerformed(ActionEvent event) {
-                    synchronized (UI.this) {
-                        parameters.put(Parameter.TRIGGER_EVENT, mode.value);
-                    }
+            Action setTrigger = makeAction(mode.description, Icon.get(mode.name().toLowerCase() + ".png"), event -> {
+                synchronized (UI.this) {
+                    parameters.put(Parameter.TRIGGER_EVENT, mode.value);
                 }
-            };
-            AbstractButton button = new JCheckBoxMenuItem(setPrescaler);
+                triggerEventMode.set(mode);
+            });
+            triggerActions.put(mode, setTrigger);
             if (mode.value == parameters.get(Parameter.TRIGGER_EVENT)) {
-                button.doClick();
+                setTrigger.actionPerformed(null);
             }
-            group.add(button);
-            menu.add(button);
         }
-        return menu;
-    }
-
-    private JMenu createVoltageReferenceMenu() {
-        JMenu menu = new JMenu("Voltage reference");
-        ButtonGroup group = new ButtonGroup();
-        for (final VoltageReference reference : VoltageReference.values()) {
-            Action setPrescaler = new AbstractAction(reference.description) {
-
-                @Override
-                public void actionPerformed(ActionEvent event) {
-                    synchronized (UI.this) {
-                        parameters.put(Parameter.VOLTAGE_REFERENCE, reference.value);
-                    }
-                }
-            };
-            AbstractButton button = new JCheckBoxMenuItem(setPrescaler);
-            if (reference.value == parameters.get(Parameter.VOLTAGE_REFERENCE)) {
-                button.doClick();
-            }
-            group.add(button);
-            menu.add(button);
-        }
-        return menu;
-    }
-
-    private JMenu createDataStrokeWidthMenu() {
-        JMenu menu = new JMenu("Data stroke width");
-        ButtonGroup group = new ButtonGroup();
-        for (final int width : new int[]{1, 2, 3}) {
-            Action setStrokeWidth = new AbstractAction(width + " px") {
-
-                @Override
-                public void actionPerformed(ActionEvent event) {
-                    graphPane.setDataStrokeWidth(width);
-                }
-            };
-            AbstractButton button = new JCheckBoxMenuItem(setStrokeWidth);
-            if (width == 1) {
-                button.doClick();
-            }
-            group.add(button);
-            menu.add(button);
-        }
-        return menu;
-    }
-
-    private JMenu createThemeMenu() {
-        String selectedLafClassName = settings.get("lookAndFeel", UIManager.getSystemLookAndFeelClassName());
-        JMenu menu = new JMenu("Theme");
-        ButtonGroup group = new ButtonGroup();
-        for (final LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
-            final String lafClassName = info.getClassName();
-            Action setLnF = new AbstractAction(info.getName()) {
-
-                @Override
-                public void actionPerformed(ActionEvent event) {
-                    try {
-                        UIManager.setLookAndFeel(lafClassName);
-                        SwingUtilities.updateComponentTreeUI(getRootPane());
-                        settings.put("lookAndFeel", lafClassName);
-                    } catch (ReflectiveOperationException | UnsupportedLookAndFeelException e) {
-                        LOGGER.log(Level.WARNING, "When setting the look and feel.", e);
-                        setStatus("red", "Failed to set the look and feel.");
-                    }
-                }
-            };
-
-            final AbstractButton button = new JCheckBoxMenuItem(setLnF);
-            if (Objects.equals(selectedLafClassName, lafClassName)) {
-                button.setSelected(true);
-            }
-            group.add(button);
-            menu.add(button);
-        }
-        return menu;
-    }
-
-    private JComponent createToolBar() {
-        JToolBar toolBar = new JToolBar();
-        toolBar.setFloatable(false);
-        final JButton start = toolBar.add(startAcquiringAction);
-        final JButton startLooping = toolBar.add(startAcquiringInLoopAction);
-        final JButton stop = toolBar.add(stopAcquiringAction);
-        final AtomicReference<JButton> lastStart = new AtomicReference<>(startLooping);
-        start.addActionListener(new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                lastStart.set(start);
-            }
-        });
-        startLooping.addActionListener(new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                lastStart.set(start);
-            }
-        });
-        stop.addPropertyChangeListener("enabled", new PropertyChangeListener() {
-
-            @Override
-            public void propertyChange(PropertyChangeEvent evt) {
-                if (stop.isEnabled()) {
-                    stop.requestFocusInWindow();
-                } else {
-                    lastStart.get().requestFocusInWindow();
-                }
-            }
-        });
-        toolBar.add(exportLastFrameAction);
-        return toolBar;
+        return triggerActions;
     }
 
     private void setStatus(String color, String message, Object... arguments) {
@@ -760,31 +857,49 @@ public class UI extends JFrame {
         if (SwingUtilities.isEventDispatchThread()) {
             statusBar.setText(htmlMessage);
         } else {
-            SwingUtilities.invokeLater(new Runnable() {
-
-                @Override
-                public void run() {
-                    statusBar.setText(htmlMessage);
-                }
-            });
+            SwingUtilities.invokeLater(() -> statusBar.setText(htmlMessage));
         }
     }
 
     private Map<Parameter, Integer> calculateChanges(Map<Parameter, Integer> frozenParameters) {
         Map<Parameter, Integer> changes = new HashMap<>();
-        for (Map.Entry<Parameter, Integer> entry : parameters.entrySet()) {
-            Parameter parameter = entry.getKey();
-            Integer newValue = entry.getValue();
+        parameters.forEach((parameter, newValue) -> {
             if (!Objects.equals(newValue, frozenParameters.get(parameter))) {
                 changes.put(parameter, newValue);
             }
-        }
-        for (Map.Entry<Parameter, Integer> entry : frozenParameters.entrySet()) {
-            Parameter parameter = entry.getKey();
+        });
+        for (Parameter parameter : frozenParameters.keySet()) {
             if (!parameters.containsKey(parameter)) {
                 changes.put(parameter, null);
             }
         }
         return changes;
+    }
+
+    private static Action makeAction(String name, Consumer<ActionEvent> behavior) {
+        return makeAction(name, null, null, behavior);
+    }
+
+    private static Action makeAction(String name, ImageIcon icon, Consumer<ActionEvent> behavior) {
+        return makeAction(name, null, icon, behavior);
+    }
+
+    private static Action makeAction(String name, String shortDescription, ImageIcon icon, Consumer<ActionEvent> behavior) {
+        AbstractAction action = new AbstractAction(name) {
+
+            @Override
+            public void actionPerformed(ActionEvent event) {
+                behavior.accept(event);
+            }
+        };
+        if (shortDescription != null) {
+            action.putValue(Action.SHORT_DESCRIPTION, shortDescription);
+
+        }
+        if (icon != null) {
+            action.putValue(Action.SMALL_ICON, icon);
+
+        }
+        return action;
     }
 }

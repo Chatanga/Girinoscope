@@ -8,6 +8,10 @@ import java.util.List;
 import java.util.Map;
 import static org.hihan.girinoscope.comm.Girino.Parameter.*;
 
+/**
+ * A read-only description of a device using the Girino firmware or anything
+ * else compatible with it (from the {@link Girino} class point of view).
+ */
 public class Device {
 
     /**
@@ -237,9 +241,7 @@ public class Device {
     }
 
     public Map<Girino.Parameter, Integer> getDefaultParameters(Map<Girino.Parameter, Integer> parameters) {
-        for (Map.Entry<Girino.Parameter, Integer> entry : factoryParameterValues.entrySet()) {
-            parameters.put(entry.getKey(), entry.getValue());
-        }
+        factoryParameterValues.forEach((key, value) -> parameters.put(key, value));
         return parameters;
     }
 }
