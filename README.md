@@ -101,8 +101,3 @@ On Linux (Ubuntu), you need to be a member of the `dialout` group
 (a `sudo usermod -a -G dialout $USER` should do the trick).
 Note that on other distributions, the group(s) involved could be different.
 In addition, if you have installed the Girinoscope from the Snap Store, there are [additional steps](doc/snap_workaround.md) to follow.
-
-**New serial ports are not detected.**
-
-This one is not a bug, but simply a limitation of the application which doesn’t detect when a serial port is added (or removed).
-When you plug something like a USB to serial adapter (eg. an Arduino board), you also need to restart the application to use it.

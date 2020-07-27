@@ -510,28 +510,28 @@ public class UI extends JFrame {
     }
 
     private List<SerialPort> enumeratePorts() {
-        List<SerialPort> ports = Serial.enumeratePorts();
-        SerialPort newPort = ports.stream()
-                .filter(p -> port == null || samePorts(p, port))
-                .findFirst()
-                .orElse(null);
+        synchronized (UI.this) {
+            List<SerialPort> ports = Serial.enumeratePorts();
+            SerialPort newPort = ports.stream()
+                    .filter(p -> port == null || samePorts(p, port))
+                    .findFirst()
+                    .orElse(null);
 
-        if (!samePorts(newPort, port)) {
-            port = newPort;
-            if (port != null) {
-                startAcquiringAction.setEnabled(true);
-                startAcquiringInLoopAction.setEnabled(true);
-                setStatus("blue", "Connected to %s.", port.getSystemPortName());
-            } else {
-                startAcquiringAction.setEnabled(false);
-                startAcquiringInLoopAction.setEnabled(false);
-                setStatus("red", "No serial port detected.");
+            if (!samePorts(newPort, port)) {
+                port = newPort;
+                if (port != null) {
+                    startAcquiringAction.setEnabled(true);
+                    startAcquiringInLoopAction.setEnabled(true);
+                    setStatus("blue", "Ready to connect to  %s.", port.getSystemPortName());
+                } else {
+                    startAcquiringAction.setEnabled(false);
+                    startAcquiringInLoopAction.setEnabled(false);
+                    setStatus("red", "No serial port detected.");
+                }
             }
+
+            return ports;
         }
-
-        System.out.println("port = " + port);
-
-        return ports;
     }
 
     private JMenuBar createMenuBar() {
@@ -603,6 +603,7 @@ public class UI extends JFrame {
                         Action setSerialPort = makeAction(String.format("%s - %s", newPort.getSystemPortName(), newPort.getPortDescription()), e -> {
                             synchronized (UI.this) {
                                 port = newPort;
+                                setStatus("blue", "Ready to connect to %s.", port.getSystemPortName());
                             }
                         });
                         AbstractButton button = new JCheckBoxMenuItem(setSerialPort);
