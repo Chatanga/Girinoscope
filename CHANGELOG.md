@@ -3,6 +3,7 @@
 ## [1.3.3-SNAPSHOT]
 ### Added
 - Toolbar shortcuts for the acquisition rate and the trigger mode.
+- The serial port list is now updated each time the corresponding menu is open.
 ### Changed
 - Switched to JDK 1.8 to accomodate the markdown plugin for Maven.
 

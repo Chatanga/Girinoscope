@@ -182,7 +182,7 @@ public class UI extends JFrame {
 
     private static class ByteArray {
 
-        private final byte[] bytes;
+        public final byte[] bytes;
 
         public ByteArray(byte[] bytes) {
             this.bytes = bytes;
@@ -258,7 +258,7 @@ public class UI extends JFrame {
                     parameters.put(Parameter.WAIT_DURATION, graphPane.getWaitDuration());
                     updateConnection
                             = frozenDevice != device.get()
-                            || frozenPort != port
+                            || !samePorts(frozenPort, port)
                             || !calculateChanges(frozenParameters).isEmpty();
                 }
                 if (updateConnection) {
@@ -425,17 +425,8 @@ public class UI extends JFrame {
         stopAcquiringAction.setEnabled(false);
         exportLastFrameAction.setEnabled(false);
 
-        if (port != null) {
-            startAcquiringAction.setEnabled(true);
-            startAcquiringInLoopAction.setEnabled(true);
-            setStatus("blue", "Ready.");
-        } else {
-            startAcquiringAction.setEnabled(false);
-            startAcquiringInLoopAction.setEnabled(false);
-            setStatus("red", "No serial port detected.");
-        }
-
         setLastDevice();
+        enumeratePorts();
 
         super.addWindowListener(new WindowAdapter() {
 
@@ -506,6 +497,43 @@ public class UI extends JFrame {
         settings.put("device", newDevice.id);
     }
 
+    /*
+     * TODO Ensure that old port instances stay relevant after an enumeration.
+     */
+    private static boolean samePorts(SerialPort leftPort, SerialPort rightPort) {
+        if (leftPort == null || rightPort == null) {
+            return leftPort == rightPort;
+        } else {
+            return Objects.equals(leftPort.getSystemPortName(), rightPort.getSystemPortName())
+                    && Objects.equals(leftPort.getPortDescription(), rightPort.getPortDescription());
+        }
+    }
+
+    private List<SerialPort> enumeratePorts() {
+        List<SerialPort> ports = Serial.enumeratePorts();
+        SerialPort newPort = ports.stream()
+                .filter(p -> port == null || samePorts(p, port))
+                .findFirst()
+                .orElse(null);
+
+        if (!samePorts(newPort, port)) {
+            port = newPort;
+            if (port != null) {
+                startAcquiringAction.setEnabled(true);
+                startAcquiringInLoopAction.setEnabled(true);
+                setStatus("blue", "Connected to %s.", port.getSystemPortName());
+            } else {
+                startAcquiringAction.setEnabled(false);
+                startAcquiringInLoopAction.setEnabled(false);
+                setStatus("red", "No serial port detected.");
+            }
+        }
+
+        System.out.println("port = " + port);
+
+        return ports;
+    }
+
     private JMenuBar createMenuBar() {
         JMenuBar menuBar = new JMenuBar();
 
@@ -566,17 +594,24 @@ public class UI extends JFrame {
     }
 
     private JMenu createSerialMenu() {
-        JMenu menu = new JMenu("Serial port");
-        ButtonGroup group = new ButtonGroup();
-        for (final SerialPort newPort : Serial.enumeratePorts()) {
-            Action setSerialPort = makeAction(newPort.getSystemPortName(), event -> port = newPort);
-            AbstractButton button = new JCheckBoxMenuItem(setSerialPort);
-            if (port == null) {
-                button.doClick();
+        final JMenu menu = new JMenu("Serial port");
+        menu.addChangeListener(event -> {
+            if (menu.isVisible()) {
+                menu.removeAll();
+                synchronized (UI.this) {
+                    for (final SerialPort newPort : enumeratePorts()) {
+                        Action setSerialPort = makeAction(String.format("%s - %s", newPort.getSystemPortName(), newPort.getPortDescription()), e -> {
+                            synchronized (UI.this) {
+                                port = newPort;
+                            }
+                        });
+                        AbstractButton button = new JCheckBoxMenuItem(setSerialPort);
+                        button.setSelected(samePorts(port, newPort));
+                        menu.add(button);
+                    }
+                }
             }
-            group.add(button);
-            menu.add(button);
-        }
+        });
         return menu;
     }
 
@@ -892,14 +927,15 @@ public class UI extends JFrame {
                 behavior.accept(event);
             }
         };
+
         if (shortDescription != null) {
             action.putValue(Action.SHORT_DESCRIPTION, shortDescription);
-
         }
+
         if (icon != null) {
             action.putValue(Action.SMALL_ICON, icon);
-
         }
+
         return action;
     }
 }
