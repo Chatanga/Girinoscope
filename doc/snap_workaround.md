@@ -2,7 +2,7 @@ This Snap version of Girinoscope requires explicit permissions to access serial 
 To do so, open the Girinoscope page in the Snap Store software,
 click the permission button and give serial port access to the installed application.
 If it is a simple checkbox (displayed as a slide to unlock button), it should be ok.
-Hovewer, if it is a combobox with no choices, you need to enable the hotplug support for it to work as intended:
+However, if it is a combobox with no choices, you need to enable the hotplug support for it to work as intended:
 
 First, check your _snapd_ version.
 
@@ -10,7 +10,7 @@ First, check your _snapd_ version.
 apt-cache policy snapd
 ```
 
-If the installed version is greater or equals to 2.39,
+If the installed version is greater or equal to 2.39,
 you can then enable the hotplug support.
 
 ``` bash
