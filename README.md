@@ -65,6 +65,16 @@ The code optimization consists in applying the [advices](doc/girino_optimization
 [womai](http://www.instructables.com/member/womai/) in the
 [Girino Instructable](http://www.instructables.com/id/Girino-Fast-Arduino-Oscilloscope/).
 
+**A bit of warning**
+
+The Girinoscope is not an oscilloscope.
+An Arduino (that is an ATmega128) is pushed to its limits with the firmware provided by the instructable.
+It spend all its cycles capturing a signal and, once a frame is captured,
+simply send it on the serial line without being able to do anything else.
+That’s why you can’t use a Girino device to continously acquire and display a signal.
+This system can only capture a sequence of discontinuous short frames of the signal.
+That’s also the reason why there is no way to disable the trigger mechanism.
+
 ## Installation
 
 ### From the Snap Store

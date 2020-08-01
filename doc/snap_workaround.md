@@ -24,7 +24,7 @@ In case the serial port still cannot be opened, you can try to connect it manual
 snap connect girinoscope:serial-port :pl2303serialport
 ```
 
-Mine was called `pl2303serialport`.
+Mine was called `pl2303serialport` (not the best adapter for the job since it lacks the DTR/RTS wire).
 To know the exact name of your serial port and its connection status,
 your can query the available connections:
 
