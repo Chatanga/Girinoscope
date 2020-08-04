@@ -1,6 +1,6 @@
 # Changelog
 
-## [1.3.3-SNAPSHOT]
+## [1.3.3]
 ### Added
 - Toolbar shortcuts for the acquisition rate and the trigger mode.
 - The serial port list is now updated each time the corresponding menu is open.

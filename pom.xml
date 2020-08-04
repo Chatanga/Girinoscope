@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<project>
+<project xmlns:pom="http://maven.apache.org/POM/4.0.0">
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.hihan</groupId>
     <artifactId>girinoscope</artifactId>
-    <version>1.3.3-SNAPSHOT</version>
+    <version>1.3.3</version>
 
     <name>Girinoscope</name>
     <description>A simple graphical user interface for Girino, a Fast Arduino Oscilloscope running on Linux, Mac OS X and Windows.</description>
@@ -87,6 +87,16 @@
                 </executions>
             </plugin>
 
+            <!-- Set compilation options. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.8.0</version>
+                <configuration>
+                    <showDeprecation>true</showDeprecation>
+                </configuration>
+            </plugin>
+
             <!-- To launch the application from Maven. -->
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
@@ -152,7 +162,7 @@
                     </execution>
                 </executions>
             </plugin>
-            
+
         </plugins>
 
     </build>
