@@ -69,8 +69,8 @@ The code optimization consists in applying the [advices](doc/girino_optimization
 
 The Girinoscope is not an oscilloscope.
 An Arduino (that is an ATmega128) is pushed to its limits with the firmware provided by the instructable.
-It spend all its cycles capturing a signal and, once a frame is captured,
-simply send it on the serial line without being able to do anything else.
+It spends all its cycles capturing a signal and, once a frame is captured,
+simply sends it on the serial line without being able to do anything else.
 That’s why you can’t use a Girino device to continously acquire and display a signal.
 This system can only capture a sequence of discontinuous short frames of the signal.
 That’s also the reason why there is no way to disable the trigger mechanism.
@@ -87,7 +87,7 @@ That’s also the reason why there is no way to disable the trigger mechanism.
 
 Just copy the [latest release](https://github.com/Chatanga/Girinoscope/releases) somewhere
 and launch the application by a simple double-click on the JAR
-(provided the JAR has been givien execution permissions).
+(provided the JAR has been given execution permissions).
 In case your system doesn’t know how to handle a JAR,
 you can launch it through a more explicit `java -jar Girinoscope-*-dist.jar`
 Obviously, since this is a Java application, you need a [JRE 1.8 or higher](https://www.java.com/fr).
