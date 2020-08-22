@@ -1,5 +1,14 @@
+# Maven
 target
+
+# NetBeans
 /nbproject/
 nb-configuration.xml
 nbactions.xml
+
+# IntelliJ IDEA
+.idea/
+girinoscope.iml
+
+# Snapcraft
 *.snap
