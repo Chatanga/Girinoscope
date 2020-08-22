@@ -23,13 +23,10 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Date;
-import java.util.EnumMap;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Observable;
 import java.util.TreeMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -123,29 +120,6 @@ public class UI extends JFrame {
         });
     }
 
-    private static class ObservableValue<T> extends Observable {
-
-        private T value;
-
-        public ObservableValue() {
-            this(null);
-        }
-
-        public ObservableValue(T value) {
-            this.value = value;
-        }
-
-        public T get() {
-            return value;
-        }
-
-        public void set(T value) {
-            this.value = value;
-            setChanged();
-            notifyObservers(value);
-        }
-    }
-
     private final Settings settings = new Settings();
 
     /*
@@ -153,36 +127,7 @@ public class UI extends JFrame {
      */
     private final Girino girino = new Girino();
 
-    /*
-     * The selected device on which the Girino firmware is running (could be
-     * different from the one currently configured for the Girino). Its value
-     * should only be changed using {@link #setDevice}.
-     */
-    private final ObservableValue<Device> device = new ObservableValue<>();
-
-    /*
-     * The currently selected serial port used to connect to the Girino
-     * hardware.
-     */
-    private SerialPort port;
-
-    /*
-     * A device specific set of values. Any observer on it will be deleted on a
-     * device change.
-     */
-    private final ObservableValue<PrescalerInfo> prescalerInfo = new ObservableValue<>();
-
-    /*
-     * A device specific set of values. Any observer on it will be deleted on a
-     * device change.
-     */
-    private final ObservableValue<TriggerEventMode> triggerEventMode = new ObservableValue<>();
-
-    /*
-     * The edited Girino settings (could be different from the ones uploaded to
-     * the Girino hardware).
-     */
-    private Map<Parameter, Integer> parameters;
+    private final DeviceModel deviceModel = new DeviceModel();
 
     /*
      * Helper class storing the attributes of the Y axis in order to create new
@@ -213,11 +158,7 @@ public class UI extends JFrame {
      */
     private class DataAcquisitionTask extends SwingWorker<Void, ByteArray> {
 
-        private Device frozenDevice;
-
-        private SerialPort frozenPort;
-
-        private final Map<Parameter, Integer> frozenParameters = new HashMap<>();
+        private DeviceModel frozenDeviceModel;
 
         private final boolean repeated;
 
@@ -242,22 +183,20 @@ public class UI extends JFrame {
 
         private void updateConnection() throws Exception {
             synchronized (UI.this) {
-                frozenDevice = device.get();
-                frozenPort = port;
-                frozenParameters.putAll(parameters);
+                frozenDeviceModel = new DeviceModel(deviceModel);
             }
 
-            setStatus("blue", "Contacting Girino on %s...", frozenPort.getSystemPortName());
+            setStatus("blue", "Contacting Girino on %s...", frozenDeviceModel.getPort().getSystemPortName());
 
             Future<Void> connection = executor.submit(() -> {
-                girino.connect(frozenDevice, frozenPort, frozenParameters);
+                girino.connect(frozenDeviceModel.getDevice(), frozenDeviceModel.getPort(), frozenDeviceModel.toParameters());
                 return null;
             });
             try {
                 connection.get(15, TimeUnit.SECONDS);
             } catch (TimeoutException e) {
                 connection.cancel(true);
-                throw new TimeoutException("No Girino detected on " + frozenPort.getSystemPortName());
+                throw new TimeoutException("No Girino detected on " + frozenDeviceModel.getPort().getSystemPortName());
             } catch (InterruptedException e) {
                 connection.cancel(true);
                 throw e;
@@ -269,15 +208,14 @@ public class UI extends JFrame {
             Future<byte[]> acquisition = null;
             boolean terminated;
             do {
-                setStatus("blue", "Acquiring data frame %d from %s...", frameIndex, frozenPort.getSystemPortName());
+                setStatus("blue", "Acquiring data frame %d from %s...", frameIndex, frozenDeviceModel.getPort().getSystemPortName());
                 boolean updateConnection;
                 synchronized (UI.this) {
-                    parameters.put(Parameter.THRESHOLD, graphPane.getThreshold());
-                    parameters.put(Parameter.WAIT_DURATION, graphPane.getWaitDuration());
-                    updateConnection
-                            = frozenDevice != device.get()
-                            || !samePorts(frozenPort, port)
-                            || !calculateChanges(frozenParameters).isEmpty();
+                    // TODO Explain.
+                    frozenDeviceModel.setThreshold(graphPane.getThreshold());
+                    frozenDeviceModel.setWaitDuration(graphPane.getWaitDuration());
+
+                    updateConnection = !frozenDeviceModel.equals(deviceModel);
                 }
                 if (updateConnection) {
                     if (acquisition != null) {
@@ -325,7 +263,7 @@ public class UI extends JFrame {
                 if (!isCancelled()) {
                     get();
                 }
-                setStatus("blue", "Done acquiring data from %s.", frozenPort.getSystemPortName());
+                setStatus("blue", "Done acquiring data from %s.", frozenDeviceModel.getPort().getSystemPortName());
             } catch (ExecutionException e) {
                 LOGGER.log(Level.WARNING, "When acquiring data.", e);
                 setStatus("red", e);
@@ -370,8 +308,9 @@ public class UI extends JFrame {
             Icon.get("go-last.png"),
             event -> {
                 synchronized (UI.this) {
-                    parameters.put(Parameter.THRESHOLD, graphPane.getThreshold());
-                    parameters.put(Parameter.WAIT_DURATION, graphPane.getWaitDuration());
+                    // TODO Explain.
+                    deviceModel.setThreshold(graphPane.getThreshold());
+                    deviceModel.setWaitDuration(graphPane.getWaitDuration());
                 }
                 currentDataAcquisitionTask = new DataAcquisitionTask(false);
                 currentDataAcquisitionTask.execute();
@@ -383,8 +322,9 @@ public class UI extends JFrame {
             Icon.get("go-next.png"),
             event -> {
                 synchronized (UI.this) {
-                    parameters.put(Parameter.THRESHOLD, graphPane.getThreshold());
-                    parameters.put(Parameter.WAIT_DURATION, graphPane.getWaitDuration());
+                    // TODO Explain.
+                    deviceModel.setThreshold(graphPane.getThreshold());
+                    deviceModel.setWaitDuration(graphPane.getWaitDuration());
                 }
                 currentDataAcquisitionTask = new DataAcquisitionTask(true);
                 currentDataAcquisitionTask.execute();
@@ -396,7 +336,7 @@ public class UI extends JFrame {
                 Axis.Builder builder = CustomAxisEditionDialog.edit(UI.this, yAxisBuilder);
                 if (builder != null) {
                     yAxisBuilder = builder;
-                    yAxisBuilder.save(settings, device.get().id + ".");
+                    yAxisBuilder.save(settings, deviceModel.getDevice().id + ".");
                     graphPane.setYCoordinateSystem(yAxisBuilder.build());
                 }
             });
@@ -423,12 +363,12 @@ public class UI extends JFrame {
         graphPane = new GraphPane();
         graphPane.setYCoordinateSystem(yAxisBuilder.build());
         graphPane.setPreferredSize(new Dimension(800, 600));
-        device.addObserver((o, v) -> {
-            graphPane.setFrameFormat(device.get().getFrameFormat());
-            graphPane.setThreshold(parameters.get(Parameter.THRESHOLD));
-            graphPane.setWaitDuration(parameters.get(Parameter.WAIT_DURATION));
+        deviceModel.addPropertyChangeListener(DeviceModel.DEVICE_PROPERTY_NAME, event -> {
+            graphPane.setFrameFormat(deviceModel.getDevice().getFrameFormat());
+            graphPane.setThreshold(deviceModel.getThreshold());
+            graphPane.setWaitDuration(deviceModel.getWaitDuration());
 
-            yAxisBuilder.load(settings, device.get().id + ".");
+            yAxisBuilder.load(settings, deviceModel.getDevice().id + ".");
             graphPane.setYCoordinateSystem(yAxisBuilder.build());
         });
         super.add(graphPane, BorderLayout.CENTER);
@@ -498,21 +438,10 @@ public class UI extends JFrame {
 
     private void setLastDevice() {
         String deviceName = settings.get("device", null);
-        setDevice(Arrays.stream(Device.DEVICES)
+        deviceModel.setDevice(Arrays.stream(Device.DEVICES)
                 .filter(d -> Objects.equals(deviceName, d.id))
                 .findFirst()
                 .orElse(Device.DEVICES[0]));
-    }
-
-    private void setDevice(Device newDevice) {
-        prescalerInfo.deleteObservers();
-        triggerEventMode.deleteObservers();
-        synchronized (UI.this) {
-            parameters = newDevice.getDefaultParameters(new EnumMap<>(Parameter.class));
-            // Device are read-only and only the instance change need to be guarded.
-            device.set(newDevice);
-        }
-        settings.put("device", newDevice.id);
     }
 
     /*
@@ -531,16 +460,16 @@ public class UI extends JFrame {
         synchronized (UI.this) {
             List<SerialPort> ports = Serial.enumeratePorts();
             SerialPort newPort = ports.stream()
-                    .filter(p -> port == null || samePorts(p, port))
+                    .filter(p -> deviceModel.getPort() == null || samePorts(p, deviceModel.getPort()))
                     .findFirst()
                     .orElse(null);
 
-            if (!samePorts(newPort, port)) {
-                port = newPort;
-                if (port != null) {
+            if (!samePorts(newPort, deviceModel.getPort())) {
+                deviceModel.setPort(newPort);
+                if (newPort != null) {
                     startAcquiringAction.setEnabled(true);
                     startAcquiringInLoopAction.setEnabled(true);
-                    setStatus("blue", "Ready to connect to  %s.", port.getSystemPortName());
+                    setStatus("blue", "Ready to connect to  %s.", newPort.getSystemPortName());
                 } else {
                     startAcquiringAction.setEnabled(false);
                     startAcquiringInLoopAction.setEnabled(false);
@@ -580,11 +509,16 @@ public class UI extends JFrame {
     private void createDynamicDeviceMenu(final JMenu girinoMenu) {
         final JMenu menu = new JMenu("Device");
         for (final Device newDevice : Device.DEVICES) {
-            final JCheckBoxMenuItem menuItem = new JCheckBoxMenuItem(makeAction(newDevice.description, event -> setDevice(newDevice)));
+            final JCheckBoxMenuItem menuItem = new JCheckBoxMenuItem(makeAction(newDevice.description, event -> {
+                synchronized (UI.this) {
+                    deviceModel.setDevice(newDevice);
+                    settings.put("device", newDevice.id);
+                }
+            }));
             menu.add(menuItem);
 
-            device.addObserver((o, v) -> {
-                if (device.get() == newDevice) {
+            deviceModel.addPropertyChangeListener(DeviceModel.DEVICE_PROPERTY_NAME, event -> {
+                if (deviceModel.getDevice() == newDevice) {
                     menuItem.setSelected(true);
 
                     girinoMenu.removeAll();
@@ -621,12 +555,12 @@ public class UI extends JFrame {
                     for (final SerialPort newPort : enumeratePorts()) {
                         Action setSerialPort = makeAction(String.format("%s - %s", newPort.getSystemPortName(), newPort.getPortDescription()), e -> {
                             synchronized (UI.this) {
-                                port = newPort;
-                                setStatus("blue", "Ready to connect to %s.", port.getSystemPortName());
+                                deviceModel.setPort(newPort);
+                                setStatus("blue", "Ready to connect to %s.", newPort.getSystemPortName());
                             }
                         });
                         AbstractButton button = new JCheckBoxMenuItem(setSerialPort);
-                        button.setSelected(samePorts(port, newPort));
+                        button.setSelected(samePorts(newPort, newPort));
                         menu.add(button);
                     }
                 }
@@ -651,8 +585,9 @@ public class UI extends JFrame {
             } else if (info.tooFast) {
                 button.setForeground(Color.ORANGE.darker());
             }
-            prescalerInfo.addObserver((o, value) -> button.setSelected(info == value));
-            button.setSelected(info == prescalerInfo.get());
+            deviceModel.addTemporaryPropertyChangeListener(DeviceModel.PRESCALER_INFO_PROPERTY_NAME,
+                    event -> button.setSelected(deviceModel.isPrescalerInfoSet(info)));
+            button.setSelected(deviceModel.isPrescalerInfoSet(info));
             menu.add(button);
         }
         return menu;
@@ -669,8 +604,9 @@ public class UI extends JFrame {
             final TriggerEventMode mode = triggerAction.getKey();
             Action action = triggerAction.getValue();
             final AbstractButton button = new JCheckBoxMenuItem(action);
-            triggerEventMode.addObserver((Observable o, Object value) -> button.setSelected(mode == value));
-            button.setSelected(mode == triggerEventMode.get());
+            deviceModel.addTemporaryPropertyChangeListener(DeviceModel.TRIGGER_EVENT_MODE_PROPERTY_NAME,
+                    event -> button.setSelected(deviceModel.isTriggerEventModeSet(mode)));
+            button.setSelected(deviceModel.isTriggerEventModeSet(mode));
             menu.add(button);
         }
         return menu;
@@ -682,11 +618,11 @@ public class UI extends JFrame {
         for (final VoltageReference reference : VoltageReference.values()) {
             Action setPrescaler = makeAction(reference.description, event -> {
                 synchronized (UI.this) {
-                    parameters.put(Parameter.VOLTAGE_REFERENCE, reference.value);
+                    deviceModel.setVoltageReference(reference);
                 }
             });
             AbstractButton button = new JCheckBoxMenuItem(setPrescaler);
-            if (reference.value == parameters.get(Parameter.VOLTAGE_REFERENCE)) {
+            if (deviceModel.isVoltageReferenceSet(reference)) {
                 button.doClick();
             }
             group.add(button);
@@ -763,15 +699,16 @@ public class UI extends JFrame {
         dynamicToolBarContent.setOpaque(false);
         toolBar.add(dynamicToolBarContent);
 
-        device.addObserver((o, v) -> {
+        deviceModel.addPropertyChangeListener(DeviceModel.DEVICE_PROPERTY_NAME, event -> {
             dynamicToolBarContent.removeAll();
 
-            if (device.get().isUserConfigurable(Parameter.PRESCALER)) {
-                Map<PrescalerInfo, Action> prescalerActions = createPrescalerActions(device.get());
+            if (deviceModel.getDevice().isUserConfigurable(Parameter.PRESCALER)) {
+                Map<PrescalerInfo, Action> prescalerActions = createPrescalerActions(deviceModel.getDevice());
                 dynamicToolBarContent.add(new JLabel("Acquisition"));
                 dynamicToolBarContent.add(createPrescalerComboBox(prescalerActions));
             }
-            if (device.get().isUserConfigurable(Parameter.TRIGGER_EVENT)) {
+
+            if (deviceModel.getDevice().isUserConfigurable(Parameter.TRIGGER_EVENT)) {
                 Map<TriggerEventMode, Action> triggerActions = createTriggerActions();
                 dynamicToolBarContent.add(new JLabel("Trigger"));
                 dynamicToolBarContent.add(createTriggerRadioButtonPane(triggerActions));
@@ -820,8 +757,9 @@ public class UI extends JFrame {
             }
         });
 
-        prescalerInfo.addObserver((o, value) -> comboBox.setSelectedItem((PrescalerInfo) value));
-        comboBox.setSelectedItem(prescalerInfo.get());
+        deviceModel.addTemporaryPropertyChangeListener(DeviceModel.PRESCALER_INFO_PROPERTY_NAME,
+                event -> comboBox.setSelectedItem(deviceModel.getPrescalerInfo()));
+        comboBox.setSelectedItem(deviceModel.getPrescalerInfo());
 
         return comboBox;
     }
@@ -839,8 +777,10 @@ public class UI extends JFrame {
             button.setFocusable(false);
             button.setText(null);
             button.setToolTipText(mode.description);
-            triggerEventMode.addObserver((o, value) -> button.setSelected(mode == (TriggerEventMode) value));
-            button.setSelected(mode == triggerEventMode.get());
+
+            deviceModel.addTemporaryPropertyChangeListener(DeviceModel.TRIGGER_EVENT_MODE_PROPERTY_NAME,
+                    event -> button.setSelected(mode == deviceModel.getTriggerEventMode()));
+            button.setSelected(mode == deviceModel.getTriggerEventMode());
             panel.add(button);
         });
         return panel;
@@ -874,15 +814,15 @@ public class UI extends JFrame {
         for (final PrescalerInfo info : potentialDevice.getPrescalerInfoValues()) {
             Action setPrescaler = makeAction(format(info), event -> {
                 synchronized (UI.this) {
-                    parameters.put(Parameter.PRESCALER, info.value);
+                    deviceModel.setPrescalerInfo(info);
                 }
                 String xFormat = info.timeframe > 0.005 ? "#,##0 ms" : "#,##0.0 ms";
                 Axis xAxis = new Axis(0, info.timeframe * 1000, xFormat);
                 graphPane.setXCoordinateSystem(xAxis);
-                prescalerInfo.set(info);
+                deviceModel.setPrescalerInfo(info);
             });
             prescalerActions.put(info, setPrescaler);
-            if (info.value == parameters.get(Parameter.PRESCALER)) {
+            if (deviceModel.isPrescalerInfoSet(info)) {
                 setPrescaler.actionPerformed(null);
             }
         }
@@ -894,12 +834,12 @@ public class UI extends JFrame {
         for (final TriggerEventMode mode : TriggerEventMode.values()) {
             Action setTrigger = makeAction(mode.description, Icon.get(mode.name().toLowerCase() + ".png"), event -> {
                 synchronized (UI.this) {
-                    parameters.put(Parameter.TRIGGER_EVENT, mode.value);
+                    deviceModel.setTriggerEventMode(mode);
                 }
-                triggerEventMode.set(mode);
+                deviceModel.setTriggerEventMode(mode);
             });
             triggerActions.put(mode, setTrigger);
-            if (mode.value == parameters.get(Parameter.TRIGGER_EVENT)) {
+            if (deviceModel.isTriggerEventModeSet(mode)) {
                 setTrigger.actionPerformed(null);
             }
         }
@@ -941,21 +881,6 @@ public class UI extends JFrame {
         } else {
             SwingUtilities.invokeLater(() -> statusBar.setText(htmlMessage));
         }
-    }
-
-    private Map<Parameter, Integer> calculateChanges(Map<Parameter, Integer> frozenParameters) {
-        Map<Parameter, Integer> changes = new HashMap<>();
-        parameters.forEach((parameter, newValue) -> {
-            if (!Objects.equals(newValue, frozenParameters.get(parameter))) {
-                changes.put(parameter, newValue);
-            }
-        });
-        for (Parameter parameter : frozenParameters.keySet()) {
-            if (!parameters.containsKey(parameter)) {
-                changes.put(parameter, null);
-            }
-        }
-        return changes;
     }
 
     private static Action makeAction(String name, Consumer<ActionEvent> behavior) {

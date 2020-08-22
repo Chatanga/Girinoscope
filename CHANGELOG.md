@@ -1,5 +1,7 @@
 # Changelog
 
+## [1.4.0-SNAPSHOT]
+
 ## [1.3.5]
 ### Fixed
 - A potential deadlock when talking too fast with a Girino device (#6).
