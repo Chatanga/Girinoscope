@@ -1,5 +1,7 @@
 # Changelog
 
+## [1.4.0-SNAPSHOT]
+
 ## [1.3.3]
 ### Added
 - Toolbar shortcuts for the acquisition rate and the trigger mode.
