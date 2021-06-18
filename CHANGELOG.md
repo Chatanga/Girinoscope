@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.3.4]
+### Fixed
+- An obvious regression in displayed frequency units introduced in 1.3.0.
+
 ## [1.3.3]
 ### Added
 - Toolbar shortcuts for the acquisition rate and the trigger mode.

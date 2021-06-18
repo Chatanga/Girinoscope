@@ -829,7 +829,7 @@ public class UI extends JFrame {
 
     private static String format(PrescalerInfo info) {
 
-        String[] frequencyUnits = {"kHz", "MHz", "GHz"};
+        String[] frequencyUnits = {"Hz", "kHz", "MHz", "GHz"};
         double frequency = info.frequency;
         int frequencyUnitIndex = 0;
         while (frequencyUnitIndex + 1 < frequencyUnits.length && frequency > 1000) {
