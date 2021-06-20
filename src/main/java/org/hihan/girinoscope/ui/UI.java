@@ -39,8 +39,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
+import java.util.logging.ConsoleHandler;
+import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.logging.SimpleFormatter;
 import javax.swing.AbstractAction;
 import javax.swing.AbstractButton;
 import javax.swing.Action;
@@ -80,7 +83,22 @@ import org.hihan.girinoscope.utils.Settings;
 @SuppressWarnings("serial")
 public class UI extends JFrame {
 
-    private static final Logger LOGGER = Logger.getLogger(UI.class.getName());
+    private static final Logger LOGGER;
+
+    private static final AtomicReference<Level> currentLevel = new AtomicReference<>(Level.OFF);
+
+    static {
+        ConsoleHandler handler = new ConsoleHandler();
+        handler.setFormatter(new SimpleFormatter());
+        handler.setLevel(Level.ALL);
+
+        Logger rootLogger = Logger.getLogger("org.hihan.girinoscope");
+        rootLogger.setLevel(currentLevel.get());
+        rootLogger.setUseParentHandlers(false);
+        rootLogger.addHandler(handler);
+
+        LOGGER = Logger.getLogger(UI.class.getName());
+    }
 
     public static void main(String[] args) throws Exception {
         if (OS.resolve() == OS.Linux) {
@@ -310,7 +328,7 @@ public class UI extends JFrame {
                 setStatus("blue", "Done acquiring data from %s.", frozenPort.getSystemPortName());
             } catch (ExecutionException e) {
                 LOGGER.log(Level.WARNING, "When acquiring data.", e);
-                setStatus("red", e.getCause().getMessage());
+                setStatus("red", e);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }
@@ -335,7 +353,7 @@ public class UI extends JFrame {
                             writer.newLine();
                         }
                     } catch (IOException e) {
-                        setStatus("red", e.getMessage());
+                        setStatus("red", e);
                     }
                 }
             });
@@ -553,6 +571,7 @@ public class UI extends JFrame {
 
         JMenu helpMenu = new JMenu("Help");
         helpMenu.add(aboutAction);
+        helpMenu.add(createTraceLevelMenu());
         menuBar.add(helpMenu);
 
         return menuBar;
@@ -885,6 +904,33 @@ public class UI extends JFrame {
             }
         }
         return triggerActions;
+    }
+
+    private JMenu createTraceLevelMenu() {
+        JMenu menu = new JMenu("Trace level");
+        ButtonGroup group = new ButtonGroup();
+        for (final Level level : new Level[]{Level.ALL, Level.INFO, Level.WARNING, Level.OFF}) {
+            Action setLevel = makeAction(level.getName(), event -> {
+                Logger rootLogger = Logger.getLogger("org.hihan.girinoscope");
+                rootLogger.setLevel(level);
+            });
+
+            final AbstractButton button = new JCheckBoxMenuItem(setLevel);
+            if (Objects.equals(currentLevel.get(), level)) {
+                button.setSelected(true);
+            }
+            group.add(button);
+            menu.add(button);
+        }
+        return menu;
+    }
+
+    private void setStatus(String color, Throwable e) {
+        Throwable rootCause = e;
+        while (rootCause.getCause() != null) {
+            rootCause = rootCause.getCause();
+        }
+        setStatus(color, rootCause.getMessage());
     }
 
     private void setStatus(String color, String message, Object... arguments) {
