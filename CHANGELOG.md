@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.3.5]
+### Fixed
+- A potential deadlock when talking too fast with a Girino device (#6).
+
 ## [1.3.4]
 ### Fixed
 - An obvious regression in displayed frequency units introduced in 1.3.0.

@@ -76,6 +76,7 @@ public class Device {
                 "classic",
                 "Arduino classic",
                 2000,
+                200,
                 "Girino ready",
                 frameFormat,
                 infos,
@@ -120,6 +121,7 @@ public class Device {
                 "stm32f103mm",
                 "STM32duino (experimental)",
                 2000,
+                200,
                 "Girino stm32f103mm ready",
                 frameFormat,
                 infos,
@@ -135,6 +137,11 @@ public class Device {
      * Milliseconds to wait once a new connection has been etablished.
      */
     private final long setupDelayOnReset;
+    
+    /**
+     * Milliseconds to wait between two chained commands.
+     */
+    private final long chainedCommandDelay;
 
     private final String readyMessage;
 
@@ -150,6 +157,7 @@ public class Device {
             String id,
             String description,
             long setupDelayOnReset,
+            long chainedCommandDelay,
             String readyMessage,
             FrameFormat frameFormat,
             List<Girino.PrescalerInfo> prescalerInfoValues,
@@ -163,6 +171,7 @@ public class Device {
         this.id = id;
         this.description = description;
         this.setupDelayOnReset = setupDelayOnReset;
+        this.chainedCommandDelay = chainedCommandDelay;
         this.readyMessage = readyMessage;
         this.frameFormat = frameFormat;
         this.prescalerInfoValues = prescalerInfoValues;
@@ -171,6 +180,10 @@ public class Device {
     }
 
     public long getSetupDelayOnReset() {
+        return setupDelayOnReset;
+    }
+
+    public long getChainedCommandDelay() {
         return setupDelayOnReset;
     }
 

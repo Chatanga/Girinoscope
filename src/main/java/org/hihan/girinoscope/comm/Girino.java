@@ -165,7 +165,7 @@ public class Girino {
                      * The serial port is expected to reset the AVR each time a
                      * connection is etablished. The delay here is to give some
                      * time to the controller to set itself up. Since the Girino
-                     * protocol only output its signature at startup, a lack of
+                     * protocol only outputs its signature at startup, a lack of
                      * response could be an inappropriate serial adapter without
                      * the DTR/RTS wire (ie. it has only 4 wires) used to force
                      * a reset. It won’t be the case with an Arduino, but if you
@@ -255,6 +255,12 @@ public class Girino {
 
     public byte[] acquireData() throws Exception {
         if (serial != null) {
+            /*
+             * When acquiring data in loop, give some time to the device between
+             * a STOP and a START. This is the only place where two commands are
+             * emitted in a row.
+             */
+            Thread.sleep(device.getChainedCommandDelay());
             serial.writeLine(START_ACQUIRING_COMMAND);
             /*
              * Note that the Girino reset its buffer (with zeros), meaning we won’t

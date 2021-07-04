@@ -18,7 +18,9 @@ sudo snap set system experimental.hotplug=true
 sudo systemctl restart snapd
 ```
 
-In case the serial port still cannot be opened, you can try to connect it manually to the application:
+Once your session restarted, the `access serial port hardware` option should be available.
+In case the serial port still cannot be opened after the option is checked,
+you can try to connect it manually to the application:
 
 ``` bash
 snap connect girinoscope:serial-port :pl2303serialport
