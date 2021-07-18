@@ -4,8 +4,10 @@ import com.fazecast.jSerialComm.SerialPort;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Stream;
@@ -25,6 +27,10 @@ public class DeviceModel {
     public static final String PRESCALER_INFO_PROPERTY_NAME = "prescalerInfo";
 
     public static final String TRIGGER_EVENT_MODE_PROPERTY_NAME = "triggerEventMode";
+
+    public static final String EXT_TRIGGER_EVENT_MODE_PROPERTY_NAME = "extTriggerEventMode";
+
+    public static final String CHANNEL_COMPOSITION_MODE_PROPERTY_NAME = "channelCompositionMode";
 
     public static final String THRESHOLD_PROPERTY_NAME = "threshold";
 
@@ -167,6 +173,42 @@ public class DeviceModel {
         support.firePropertyChange(TRIGGER_EVENT_MODE_PROPERTY_NAME, oldTriggerEventModeValue, triggerEventMode.value);
     }
 
+    public boolean isExtTriggerEventModeSet(Girino.ExtTriggerEventMode extTriggerEventMode) {
+        return Objects.equals(parameters.get(Girino.Parameter.EXT_TRIGGER_EVENT), extTriggerEventMode.value);
+    }
+
+    public Girino.ExtTriggerEventMode getExtTriggerEventMode() {
+        int extTriggerEventValue = parameters.get(Girino.Parameter.EXT_TRIGGER_EVENT);
+        return Stream.of(Girino.ExtTriggerEventMode.values())
+                .filter(p -> p.value == extTriggerEventValue)
+                .findFirst()
+                .orElse(null);
+    }
+
+    public void setExtTriggerEventMode(Girino.ExtTriggerEventMode extTriggerEventMode) {
+        int oldExtTriggerEventModeValue = parameters.get(Girino.Parameter.EXT_TRIGGER_EVENT);
+        parameters.put(Girino.Parameter.EXT_TRIGGER_EVENT, extTriggerEventMode.value);
+        support.firePropertyChange(EXT_TRIGGER_EVENT_MODE_PROPERTY_NAME, oldExtTriggerEventModeValue, extTriggerEventMode.value);
+    }
+
+    public boolean isChannelsModeSet(Girino.ChannelCompositionMode channelCompositionMode) {
+        return Objects.equals(parameters.get(Girino.Parameter.CHANNEL_COMPOSITION), channelCompositionMode.value);
+    }
+
+    public Girino.ChannelCompositionMode getChannelCompositionMode() {
+        int channelComposition = parameters.get(Girino.Parameter.CHANNEL_COMPOSITION);
+        return Stream.of(Girino.ChannelCompositionMode.values())
+                .filter(p -> p.value == channelComposition)
+                .findFirst()
+                .orElse(null);
+    }
+
+    public void setChannelCompositionMode(Girino.ChannelCompositionMode channelCompositionMode) {
+        int oldChannelsModeValue = parameters.get(Girino.Parameter.CHANNEL_COMPOSITION);
+        parameters.put(Girino.Parameter.CHANNEL_COMPOSITION, channelCompositionMode.value);
+        support.firePropertyChange(CHANNEL_COMPOSITION_MODE_PROPERTY_NAME, oldChannelsModeValue, channelCompositionMode.value);
+    }
+
     public int getThreshold() {
         return parameters.get(Girino.Parameter.THRESHOLD);
     }
@@ -189,6 +231,24 @@ public class DeviceModel {
 
     public Map<Girino.Parameter, Integer> toParameters() {
         return Collections.unmodifiableMap(parameters);
+    }
+
+    public List<String> diff(DeviceModel other) {
+        List<String> changes = new ArrayList<>();
+        if (!Objects.equals(device, other.device)) {
+            changes.add("device: " + device.getId() + " -> " + other.device.getId());
+        }
+        if (!Objects.equals(port, other.port)) {
+            changes.add("port: " + port.getSystemPortName() + " -> " + other.port.getSystemPortName());
+        }
+        if (!Objects.equals(parameters, other.parameters)) {
+            for (Map.Entry<Girino.Parameter, Integer> entry : other.parameters.entrySet()) {
+                if (!Objects.equals(parameters.get(entry.getKey()), entry.getValue())) {
+                    changes.add("parameter " + entry.getKey() + ": " + parameters.get(entry.getKey()) + " -> " + entry.getValue());
+                }
+            }
+        }
+        return changes;
     }
 
     // TODO port ou port.get...() ?

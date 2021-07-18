@@ -6,8 +6,12 @@ import java.util.AbstractMap;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class Girino {
+
+    private static final Logger LOGGER = Logger.getLogger(Girino.class.getName());
 
     public enum Parameter {
 
@@ -16,8 +20,10 @@ public class Girino {
         PRESCALER("p"),
         VOLTAGE_REFERENCE("r"),
         TRIGGER_EVENT("e"),
+        EXT_TRIGGER_EVENT("e"),
         WAIT_DURATION("w"),
-        THRESHOLD("t");
+        THRESHOLD("t"),
+        CHANNEL_COMPOSITION("c");
 
         private final String command;
 
@@ -28,6 +34,10 @@ public class Girino {
         public String getIdentifier() {
             if (this == WAIT_DURATION) {
                 return "waitDuration";
+            } else if (this == EXT_TRIGGER_EVENT) {
+                return TRIGGER_EVENT.getIdentifier();
+            } else if (this == CHANNEL_COMPOSITION) {
+                return "channels";
             } else {
                 return name().toLowerCase().replace('_', ' ');
             }
@@ -117,6 +127,37 @@ public class Girino {
         }
     }
 
+    public enum ExtTriggerEventMode {
+
+        TOGGLE(0, "Toggle"), //
+        FALLING_EDGE(2, "Falling edge"), //
+        RISING_EDGE(3, "Rising edge"), //
+        AUTO(4, "Automatic");
+
+        public int value;
+        public String description;
+
+        ExtTriggerEventMode(int value, String description) {
+            this.value = value;
+            this.description = description;
+        }
+    }
+
+    public enum ChannelCompositionMode {
+
+        SINGLE(1, "Single"), //
+        DUAL(2, "Dual"), //
+        XY(3, "X-Y");
+
+        public int value;
+        public String description;
+
+        ChannelCompositionMode(int value, String description) {
+            this.value = value;
+            this.description = description;
+        }
+    }
+
     public enum VoltageReference {
 
         AREF(0, "AREF, Internal Vref turned off"), //
@@ -176,7 +217,10 @@ public class Girino {
                     String data;
                     do {
                         data = serial.readLine();
-                    } while (!data.endsWith(device.getReadyMessage()));
+                    } while (data.isEmpty());
+                    if (!data.endsWith(device.getReadyMessage())) {
+                        throw new IOException("Expected a '" + device.getReadyMessage() + "' device but found a '" + data + "'");
+                    }
                 } catch (InterruptedException e) {
                     /*
                      * The underlying serial port library introduces a delay to

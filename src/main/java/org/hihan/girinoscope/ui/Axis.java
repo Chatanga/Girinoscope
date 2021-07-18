@@ -127,6 +127,9 @@ public class Axis {
 
     public Axis(double startValue, double endValue, double increment, String format) {
         fraction = (endValue - startValue) / increment;
+        if (Double.isInfinite(fraction) || Double.isNaN(fraction)) {
+            throw new IllegalArgumentException("Unproper increment: " + increment);
+        }
         graphLabels = new ArrayList<>();
         for (double value = startValue; value <= endValue; value += increment) {
             graphLabels.add(new GraphLabel(new DecimalFormat(format).format(value)));

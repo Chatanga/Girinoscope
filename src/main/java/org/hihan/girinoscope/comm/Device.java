@@ -36,30 +36,34 @@ public class Device {
         READ_WRITE
     }
 
-    public static final Device[] DEVICES = {createClassic(), createStm32f103mm()};
+    public static final Device[] DEVICES = {createClassic(), createSoftGirino(), createStm32f103mm()};
 
     // Matching firmware: https://github.com/supacyan/girino
+    // Also: https://github.com/Chatanga/Girino
     public static Device createClassic() {
 
         long baseFrequency = 16_000_000;
         FrameFormat frameFormat = new FrameFormat(1280, 1, true, 255);
 
-        Map<Girino.Parameter, SupportLevel> supportLevels = new HashMap<>();
-        supportLevels.put(BUFFER_SIZE, SupportLevel.READ_ONLY);
-        supportLevels.put(BAUD_RATE, SupportLevel.READ_ONLY);
-        supportLevels.put(PRESCALER, SupportLevel.READ_WRITE);
-        supportLevels.put(VOLTAGE_REFERENCE, SupportLevel.WRITE_ONLY);
-        supportLevels.put(TRIGGER_EVENT, SupportLevel.READ_WRITE);
-        supportLevels.put(WAIT_DURATION, SupportLevel.READ_WRITE);
-        supportLevels.put(THRESHOLD, SupportLevel.READ_WRITE);
+        Map<Girino.Parameter, SupportLevel> supports = new HashMap<>();
+        supports.put(BUFFER_SIZE, SupportLevel.READ_ONLY);
+        supports.put(BAUD_RATE, SupportLevel.READ_ONLY);
+        supports.put(PRESCALER, SupportLevel.READ_WRITE);
+        supports.put(VOLTAGE_REFERENCE, SupportLevel.WRITE_ONLY);
+        supports.put(TRIGGER_EVENT, SupportLevel.READ_WRITE);
+        supports.put(EXT_TRIGGER_EVENT, SupportLevel.NONE);
+        supports.put(WAIT_DURATION, SupportLevel.READ_WRITE);
+        supports.put(THRESHOLD, SupportLevel.READ_WRITE);
+        supports.put(CHANNEL_COMPOSITION, SupportLevel.NONE);
 
-        Map<Girino.Parameter, Integer> parameterValues = new HashMap<>();
-        parameterValues.put(BUFFER_SIZE, frameFormat.sampleCount * frameFormat.sampleSizeInBit);
-        parameterValues.put(PRESCALER, 32);
-        parameterValues.put(VOLTAGE_REFERENCE, Girino.VoltageReference.AVCC.value);
-        parameterValues.put(TRIGGER_EVENT, Girino.TriggerEventMode.TOGGLE.value);
-        parameterValues.put(WAIT_DURATION, frameFormat.sampleCount - 32);
-        parameterValues.put(THRESHOLD, 150);
+        Map<Girino.Parameter, Integer> parameters = new HashMap<>();
+        parameters.put(BUFFER_SIZE, frameFormat.sampleCount * frameFormat.sampleSizeInBit);
+        parameters.put(PRESCALER, 32);
+        parameters.put(VOLTAGE_REFERENCE, Girino.VoltageReference.AVCC.value);
+        parameters.put(TRIGGER_EVENT, Girino.TriggerEventMode.TOGGLE.value);
+        parameters.put(WAIT_DURATION, frameFormat.sampleCount - 32);
+        parameters.put(THRESHOLD, 150);
+        parameters.put(CHANNEL_COMPOSITION, Girino.ChannelCompositionMode.SINGLE.value);
 
         List<Girino.PrescalerInfo> infos = new LinkedList<>();
         for (int n = 2; n < 8; ++n) {
@@ -80,8 +84,58 @@ public class Device {
                 "Girino ready",
                 frameFormat,
                 infos,
-                supportLevels,
-                parameterValues);
+                supports,
+                parameters);
+    }
+
+    // Matching firmware: https://github.com/mabartibin/SoftGirino
+    public static Device createSoftGirino() {
+
+        long baseFrequency = 16_000_000;
+        FrameFormat frameFormat = new FrameFormat(1280, 1, true, 255);
+
+        Map<Girino.Parameter, SupportLevel> supportLevels = new HashMap<>();
+        final Map<Girino.Parameter, SupportLevel> supports = supportLevels;
+        supports.put(BUFFER_SIZE, SupportLevel.READ_ONLY);
+        supports.put(BAUD_RATE, SupportLevel.READ_ONLY);
+        supports.put(PRESCALER, SupportLevel.READ_WRITE);
+        supports.put(VOLTAGE_REFERENCE, SupportLevel.WRITE_ONLY);
+        supports.put(TRIGGER_EVENT, SupportLevel.NONE);
+        supports.put(EXT_TRIGGER_EVENT, SupportLevel.READ_WRITE);
+        supports.put(WAIT_DURATION, SupportLevel.READ_WRITE);
+        supports.put(THRESHOLD, SupportLevel.READ_WRITE);
+        supports.put(CHANNEL_COMPOSITION, SupportLevel.READ_WRITE);
+
+        Map<Girino.Parameter, Integer> parameters = new HashMap<>();
+        parameters.put(BUFFER_SIZE, frameFormat.sampleCount * frameFormat.sampleSizeInBit);
+        parameters.put(PRESCALER, 32);
+        parameters.put(VOLTAGE_REFERENCE, Girino.VoltageReference.AVCC.value);
+        parameters.put(EXT_TRIGGER_EVENT, Girino.TriggerEventMode.RISING_EDGE.value);
+        parameters.put(WAIT_DURATION, frameFormat.sampleCount - 32);
+        parameters.put(THRESHOLD, 150);
+        parameters.put(CHANNEL_COMPOSITION, Girino.ChannelCompositionMode.SINGLE.value);
+
+        List<Girino.PrescalerInfo> infos = new LinkedList<>();
+        for (int n = 2; n < 8; ++n) {
+            int value = (int) Math.pow(2, n);
+            double clockCycleCountPerConversion = 13;
+            double frequency = baseFrequency / value / clockCycleCountPerConversion;
+            double timeframe = frameFormat.sampleCount / frequency;
+            boolean tooFast = n < 4;
+            boolean reallyTooFast = n < 3;
+            infos.add(new Girino.PrescalerInfo(value, frequency, timeframe, tooFast, reallyTooFast));
+        }
+
+        return new Device(
+                "soft-girino",
+                "SoftGirino",
+                2000,
+                200,
+                "SoftGirino ready",
+                frameFormat,
+                infos,
+                supports,
+                parameters);
     }
 
     // Matching firmware: https://github.com/ag88/GirinoSTM32F103duino
@@ -95,8 +149,10 @@ public class Device {
         supports.put(PRESCALER, SupportLevel.READ_WRITE);
         supports.put(VOLTAGE_REFERENCE, SupportLevel.NONE);
         supports.put(TRIGGER_EVENT, SupportLevel.READ_WRITE);
+        supports.put(EXT_TRIGGER_EVENT, SupportLevel.NONE);
         supports.put(WAIT_DURATION, SupportLevel.READ_WRITE);
         supports.put(THRESHOLD, SupportLevel.READ_WRITE);
+        supports.put(CHANNEL_COMPOSITION, SupportLevel.NONE);
 
         Map<Girino.Parameter, Integer> parameters = new HashMap<>();
         parameters.put(BUFFER_SIZE, frameFormat.sampleCount * frameFormat.sampleSizeInBit);
@@ -104,10 +160,11 @@ public class Device {
         parameters.put(TRIGGER_EVENT, Girino.TriggerEventMode.TOGGLE.value);
         parameters.put(WAIT_DURATION, frameFormat.sampleCount - 32);
         parameters.put(THRESHOLD, 150);
+        parameters.put(CHANNEL_COMPOSITION, Girino.ChannelCompositionMode.SINGLE.value);
 
         List<Girino.PrescalerInfo> infos = new LinkedList<>();
         double defaultFrequency = 16_000_000d / parameters.get(PRESCALER) / 13d;
-        List<Double>frequencies = Arrays.asList(857_000d, 600_000d, 500_000d, 50_000d, 5_000d, 500d, 50d, defaultFrequency);
+        List<Double> frequencies = Arrays.asList(857_000d, 600_000d, 500_000d, 50_000d, 5_000d, 500d, 50d, defaultFrequency);
         Collections.sort(frequencies);
         Collections.reverse(frequencies);
         for (double frequency : frequencies) {
@@ -137,7 +194,7 @@ public class Device {
      * Milliseconds to wait once a new connection has been etablished.
      */
     private final long setupDelayOnReset;
-    
+
     /**
      * Milliseconds to wait between two chained commands.
      */
@@ -177,6 +234,10 @@ public class Device {
         this.prescalerInfoValues = prescalerInfoValues;
         this.parameterSupportLevels = parameterSupportLevels;
         this.factoryParameterValues = factoryParameterValues;
+    }
+
+    public String getId() {
+        return id;
     }
 
     public long getSetupDelayOnReset() {

@@ -37,7 +37,6 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.logging.ConsoleHandler;
-import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
@@ -68,6 +67,8 @@ import javax.swing.WindowConstants;
 import javax.swing.border.EmptyBorder;
 import org.hihan.girinoscope.comm.Device;
 import org.hihan.girinoscope.comm.Girino;
+import org.hihan.girinoscope.comm.Girino.ChannelCompositionMode;
+import org.hihan.girinoscope.comm.Girino.ExtTriggerEventMode;
 import org.hihan.girinoscope.comm.Girino.Parameter;
 import org.hihan.girinoscope.comm.Girino.PrescalerInfo;
 import org.hihan.girinoscope.comm.Girino.TriggerEventMode;
@@ -153,7 +154,7 @@ public class UI extends JFrame {
     }
 
     /*
-     * All the communication with the Girino interface is done asynchrously
+     * All the communication with the Girino interface is done asynchronously
      * through this class (save the disposal).
      */
     private class DataAcquisitionTask extends SwingWorker<Void, ByteArray> {
@@ -182,13 +183,18 @@ public class UI extends JFrame {
         }
 
         private void updateConnection() throws Exception {
+            boolean forceReconnection;
             synchronized (UI.this) {
+                forceReconnection = frozenDeviceModel != null && frozenDeviceModel.getDevice() != deviceModel.getDevice();
                 frozenDeviceModel = new DeviceModel(deviceModel);
             }
 
             setStatus("blue", "Contacting Girino on %s...", frozenDeviceModel.getPort().getSystemPortName());
 
             Future<Void> connection = executor.submit(() -> {
+                if (forceReconnection) {
+                    girino.disconnect();
+                }
                 girino.connect(frozenDeviceModel.getDevice(), frozenDeviceModel.getPort(), frozenDeviceModel.toParameters());
                 return null;
             });
@@ -212,12 +218,14 @@ public class UI extends JFrame {
                 boolean updateConnection;
                 synchronized (UI.this) {
                     // TODO Explain.
-                    frozenDeviceModel.setThreshold(graphPane.getThreshold());
-                    frozenDeviceModel.setWaitDuration(graphPane.getWaitDuration());
+                    deviceModel.setChannelCompositionMode(graphPane.getChannelCompositionMode());
+                    deviceModel.setThreshold(graphPane.getThreshold());
+                    deviceModel.setWaitDuration(graphPane.getWaitDuration());
 
                     updateConnection = !frozenDeviceModel.equals(deviceModel);
                 }
                 if (updateConnection) {
+                    LOGGER.log(Level.FINE, "Update connection on {0}.", frozenDeviceModel.diff(deviceModel));
                     if (acquisition != null) {
                         acquisition.cancel(true);
                     }
@@ -285,7 +293,7 @@ public class UI extends JFrame {
                 if (fileChooser.showSaveDialog(UI.this) == JFileChooser.APPROVE_OPTION) {
                     File file = fileChooser.getSelectedFile();
                     int[] value = graphPane.getValues();
-                    try ( BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8))) {
+                    try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8))) {
                         for (int i = 0; i < value.length; ++i) {
                             writer.write(Integer.toString(value[i]));
                             writer.newLine();
@@ -309,6 +317,7 @@ public class UI extends JFrame {
             event -> {
                 synchronized (UI.this) {
                     // TODO Explain.
+                    deviceModel.setChannelCompositionMode(graphPane.getChannelCompositionMode());
                     deviceModel.setThreshold(graphPane.getThreshold());
                     deviceModel.setWaitDuration(graphPane.getWaitDuration());
                 }
@@ -323,6 +332,7 @@ public class UI extends JFrame {
             event -> {
                 synchronized (UI.this) {
                     // TODO Explain.
+                    deviceModel.setChannelCompositionMode(graphPane.getChannelCompositionMode());
                     deviceModel.setThreshold(graphPane.getThreshold());
                     deviceModel.setWaitDuration(graphPane.getWaitDuration());
                 }
@@ -362,9 +372,10 @@ public class UI extends JFrame {
 
         graphPane = new GraphPane();
         graphPane.setYCoordinateSystem(yAxisBuilder.build());
-        graphPane.setPreferredSize(new Dimension(800, 600));
+        graphPane.setPreferredSize(new Dimension(1024, 768));
         deviceModel.addPropertyChangeListener(DeviceModel.DEVICE_PROPERTY_NAME, event -> {
             graphPane.setFrameFormat(deviceModel.getDevice().getFrameFormat());
+            graphPane.setChannelCompositionMode(deviceModel.getChannelCompositionMode());
             graphPane.setThreshold(deviceModel.getThreshold());
             graphPane.setWaitDuration(deviceModel.getWaitDuration());
 
@@ -517,6 +528,11 @@ public class UI extends JFrame {
             }));
             menu.add(menuItem);
 
+            /*
+             * Listener are called when the {@link device} is set and will add
+             * an observer meant to be deleted when the {@link device} is
+             * changed.
+             */
             deviceModel.addPropertyChangeListener(DeviceModel.DEVICE_PROPERTY_NAME, event -> {
                 if (deviceModel.getDevice() == newDevice) {
                     menuItem.setSelected(true);
@@ -536,6 +552,16 @@ public class UI extends JFrame {
                         girinoMenu.add(createTriggerEventMenu(triggerActions));
                     }
 
+                    if (newDevice.isUserConfigurable(Parameter.EXT_TRIGGER_EVENT)) {
+                        Map<ExtTriggerEventMode, Action> extTriggerActions = createExtTriggerActions();
+                        girinoMenu.add(createExtTriggerEventMenu(extTriggerActions));
+                    }
+
+                    if (newDevice.isUserConfigurable(Parameter.CHANNEL_COMPOSITION)) {
+                        Map<ChannelCompositionMode, Action> channelsActions = createChannelsActions();
+                        girinoMenu.add(createChannelsMenu(channelsActions));
+                    }
+
                     if (newDevice.isUserConfigurable(Parameter.VOLTAGE_REFERENCE)) {
                         girinoMenu.add(createVoltageReferenceMenu());
                     }
@@ -551,7 +577,8 @@ public class UI extends JFrame {
         menu.addChangeListener(event -> {
             if (menu.isVisible()) {
                 menu.removeAll();
-                synchronized (UI.this) {
+                ButtonGroup group = new ButtonGroup();
+                synchronized (UI.this) { // TODO Report warning as a NetBeans issue.
                     for (final SerialPort newPort : enumeratePorts()) {
                         Action setSerialPort = makeAction(String.format("%s - %s", newPort.getSystemPortName(), newPort.getPortDescription()), e -> {
                             synchronized (UI.this) {
@@ -560,7 +587,8 @@ public class UI extends JFrame {
                             }
                         });
                         AbstractButton button = new JCheckBoxMenuItem(setSerialPort);
-                        button.setSelected(samePorts(newPort, newPort));
+                        button.setSelected(samePorts(newPort, deviceModel.getPort()));
+                        group.add(button);
                         menu.add(button);
                     }
                 }
@@ -569,13 +597,9 @@ public class UI extends JFrame {
         return menu;
     }
 
-    /*
-     * To be called when the {@link device} is set. Will add an observer on
-     * {@link prescalerInfo} meant to be deleted when the {@link device} is
-     * changed.
-     */
     private JMenu createPrescalerMenu(Map<PrescalerInfo, Action> prescalerActions) {
         JMenu menu = new JMenu("Acquisition rate / Time frame");
+        ButtonGroup group = new ButtonGroup();
         for (Map.Entry<PrescalerInfo, Action> prescalerAction : prescalerActions.entrySet()) {
             final PrescalerInfo info = prescalerAction.getKey();
             Action action = prescalerAction.getValue();
@@ -588,18 +612,15 @@ public class UI extends JFrame {
             deviceModel.addTemporaryPropertyChangeListener(DeviceModel.PRESCALER_INFO_PROPERTY_NAME,
                     event -> button.setSelected(deviceModel.isPrescalerInfoSet(info)));
             button.setSelected(deviceModel.isPrescalerInfoSet(info));
+            group.add(button);
             menu.add(button);
         }
         return menu;
     }
 
-    /*
-     * To be called when the {@link device} is set. Will add an observer on
-     * {@link triggerEventMode} meant to be deleted when the {@link device} is
-     * changed.
-     */
     private JMenu createTriggerEventMenu(Map<TriggerEventMode, Action> triggerActions) {
         JMenu menu = new JMenu("Trigger event mode");
+        ButtonGroup group = new ButtonGroup();
         for (Map.Entry<TriggerEventMode, Action> triggerAction : triggerActions.entrySet()) {
             final TriggerEventMode mode = triggerAction.getKey();
             Action action = triggerAction.getValue();
@@ -607,6 +628,39 @@ public class UI extends JFrame {
             deviceModel.addTemporaryPropertyChangeListener(DeviceModel.TRIGGER_EVENT_MODE_PROPERTY_NAME,
                     event -> button.setSelected(deviceModel.isTriggerEventModeSet(mode)));
             button.setSelected(deviceModel.isTriggerEventModeSet(mode));
+            group.add(button);
+            menu.add(button);
+        }
+        return menu;
+    }
+
+    private JMenu createExtTriggerEventMenu(Map<ExtTriggerEventMode, Action> extTriggerActions) {
+        JMenu menu = new JMenu("Trigger event mode");
+        ButtonGroup group = new ButtonGroup();
+        for (Map.Entry<ExtTriggerEventMode, Action> extTriggerAction : extTriggerActions.entrySet()) {
+            final ExtTriggerEventMode mode = extTriggerAction.getKey();
+            Action action = extTriggerAction.getValue();
+            final AbstractButton button = new JCheckBoxMenuItem(action);
+            deviceModel.addTemporaryPropertyChangeListener(DeviceModel.TRIGGER_EVENT_MODE_PROPERTY_NAME,
+                    event -> button.setSelected(deviceModel.isExtTriggerEventModeSet(mode)));
+            button.setSelected(deviceModel.isExtTriggerEventModeSet(mode));
+            group.add(button);
+            menu.add(button);
+        }
+        return menu;
+    }
+
+    private JMenu createChannelsMenu(Map<ChannelCompositionMode, Action> channelsActions) {
+        JMenu menu = new JMenu("Channels composition mode");
+        ButtonGroup group = new ButtonGroup();
+        for (Map.Entry<ChannelCompositionMode, Action> channelsAction : channelsActions.entrySet()) {
+            final ChannelCompositionMode mode = channelsAction.getKey();
+            Action action = channelsAction.getValue();
+            final AbstractButton button = new JCheckBoxMenuItem(action);
+            deviceModel.addTemporaryPropertyChangeListener(DeviceModel.CHANNEL_COMPOSITION_MODE_PROPERTY_NAME,
+                    event -> button.setSelected(deviceModel.isChannelsModeSet(mode)));
+            button.setSelected(deviceModel.isChannelsModeSet(mode));
+            group.add(button);
             menu.add(button);
         }
         return menu;
@@ -680,9 +734,10 @@ public class UI extends JFrame {
         final JButton start = toolBar.add(startAcquiringAction);
         final JButton startLooping = toolBar.add(startAcquiringInLoopAction);
         final JButton stop = toolBar.add(stopAcquiringAction);
+
         final AtomicReference<JButton> lastStart = new AtomicReference<>(startLooping);
         start.addActionListener(event -> lastStart.set(start));
-        startLooping.addActionListener(event -> lastStart.set(start));
+        startLooping.addActionListener(event -> lastStart.set(startLooping));
         stop.addPropertyChangeListener("enabled", event -> {
             if (stop.isEnabled()) {
                 stop.requestFocusInWindow();
@@ -712,6 +767,18 @@ public class UI extends JFrame {
                 Map<TriggerEventMode, Action> triggerActions = createTriggerActions();
                 dynamicToolBarContent.add(new JLabel("Trigger"));
                 dynamicToolBarContent.add(createTriggerRadioButtonPane(triggerActions));
+            }
+
+            if (deviceModel.getDevice().isUserConfigurable(Parameter.EXT_TRIGGER_EVENT)) {
+                Map<ExtTriggerEventMode, Action> extTriggerActions = createExtTriggerActions();
+                dynamicToolBarContent.add(new JLabel("Trigger"));
+                dynamicToolBarContent.add(createExtTriggerRadioButtonPane(extTriggerActions));
+            }
+
+            if (deviceModel.getDevice().isUserConfigurable(Parameter.CHANNEL_COMPOSITION)) {
+                Map<ChannelCompositionMode, Action> channelsActions = createChannelsActions();
+                dynamicToolBarContent.add(new JLabel("Channels"));
+                dynamicToolBarContent.add(createChannelsRadioButtonPane(channelsActions));
             }
 
             toolBar.revalidate();
@@ -764,14 +831,10 @@ public class UI extends JFrame {
         return comboBox;
     }
 
-    /*
-     * To be called when the {@link device} is set. Will add an observer on
-     * {@link triggerEventMode} meant to be deleted when the {@link device} is
-     * changed.
-     */
     private JPanel createTriggerRadioButtonPane(final Map<TriggerEventMode, Action> triggerActions) {
         JPanel panel = new JPanel(new FlowLayout());
         panel.setOpaque(false);
+        ButtonGroup groupToPreventVoidSelection = new ButtonGroup();
         triggerActions.forEach((mode, action) -> {
             final JToggleButton button = new JToggleButton(action);
             button.setFocusable(false);
@@ -782,6 +845,45 @@ public class UI extends JFrame {
                     event -> button.setSelected(mode == deviceModel.getTriggerEventMode()));
             button.setSelected(mode == deviceModel.getTriggerEventMode());
             panel.add(button);
+            groupToPreventVoidSelection.add(button);
+        });
+        return panel;
+    }
+
+    private JPanel createExtTriggerRadioButtonPane(final Map<ExtTriggerEventMode, Action> extTriggerActions) {
+        JPanel panel = new JPanel(new FlowLayout());
+        panel.setOpaque(false);
+        ButtonGroup groupToPreventVoidSelection = new ButtonGroup();
+        extTriggerActions.forEach((mode, action) -> {
+            final JToggleButton button = new JToggleButton(action);
+            button.setFocusable(false);
+            button.setText(null);
+            button.setToolTipText(mode.description);
+
+            deviceModel.addTemporaryPropertyChangeListener(DeviceModel.EXT_TRIGGER_EVENT_MODE_PROPERTY_NAME,
+                    event -> button.setSelected(mode == deviceModel.getExtTriggerEventMode()));
+            button.setSelected(mode == deviceModel.getExtTriggerEventMode());
+            panel.add(button);
+            groupToPreventVoidSelection.add(button);
+        });
+        return panel;
+    }
+
+    private JPanel createChannelsRadioButtonPane(final Map<ChannelCompositionMode, Action> channelsActions) {
+        JPanel panel = new JPanel(new FlowLayout());
+        panel.setOpaque(false);
+        ButtonGroup groupToPreventVoidSelection = new ButtonGroup();
+        channelsActions.forEach((mode, action) -> {
+            final JToggleButton button = new JToggleButton(action);
+            button.setFocusable(false);
+            button.setText(null);
+            button.setToolTipText(mode.description);
+
+            deviceModel.addTemporaryPropertyChangeListener(DeviceModel.CHANNEL_COMPOSITION_MODE_PROPERTY_NAME,
+                    event -> button.setSelected(mode == deviceModel.getChannelCompositionMode()));
+            button.setSelected(mode == deviceModel.getChannelCompositionMode());
+            panel.add(button);
+            groupToPreventVoidSelection.add(button);
         });
         return panel;
     }
@@ -814,12 +916,11 @@ public class UI extends JFrame {
         for (final PrescalerInfo info : potentialDevice.getPrescalerInfoValues()) {
             Action setPrescaler = makeAction(format(info), event -> {
                 synchronized (UI.this) {
+                    String xFormat = info.timeframe > 0.005 ? "#,##0 ms" : "#,##0.0 ms";
+                    Axis xAxis = new Axis(0, info.timeframe * 1000, xFormat);
+                    graphPane.setXCoordinateSystem(xAxis);
                     deviceModel.setPrescalerInfo(info);
                 }
-                String xFormat = info.timeframe > 0.005 ? "#,##0 ms" : "#,##0.0 ms";
-                Axis xAxis = new Axis(0, info.timeframe * 1000, xFormat);
-                graphPane.setXCoordinateSystem(xAxis);
-                deviceModel.setPrescalerInfo(info);
             });
             prescalerActions.put(info, setPrescaler);
             if (deviceModel.isPrescalerInfoSet(info)) {
@@ -835,8 +936,8 @@ public class UI extends JFrame {
             Action setTrigger = makeAction(mode.description, Icon.get(mode.name().toLowerCase() + ".png"), event -> {
                 synchronized (UI.this) {
                     deviceModel.setTriggerEventMode(mode);
+                    graphPane.setTriggerEnabled(true);
                 }
-                deviceModel.setTriggerEventMode(mode);
             });
             triggerActions.put(mode, setTrigger);
             if (deviceModel.isTriggerEventModeSet(mode)) {
@@ -844,6 +945,40 @@ public class UI extends JFrame {
             }
         }
         return triggerActions;
+    }
+
+    private Map<ExtTriggerEventMode, Action> createExtTriggerActions() {
+        Map<ExtTriggerEventMode, Action> extTriggerActions = new TreeMap<>((leftMode, rightMode) -> Integer.compare(leftMode.value, rightMode.value));
+        for (final ExtTriggerEventMode mode : ExtTriggerEventMode.values()) {
+            Action setExtTrigger = makeAction(mode.description, Icon.get(mode.name().toLowerCase() + ".png"), event -> {
+                synchronized (UI.this) {
+                    deviceModel.setExtTriggerEventMode(mode);
+                    graphPane.setTriggerEnabled(mode != ExtTriggerEventMode.AUTO);
+                }
+            });
+            extTriggerActions.put(mode, setExtTrigger);
+            if (deviceModel.isExtTriggerEventModeSet(mode)) {
+                setExtTrigger.actionPerformed(null);
+            }
+        }
+        return extTriggerActions;
+    }
+
+    private Map<ChannelCompositionMode, Action> createChannelsActions() {
+        Map<ChannelCompositionMode, Action> channelsActions = new TreeMap<>((leftMode, rightMode) -> Integer.compare(leftMode.value, rightMode.value));
+        for (final ChannelCompositionMode mode : ChannelCompositionMode.values()) {
+            Action setChannels = makeAction(mode.description, Icon.get(mode.name().toLowerCase() + ".png"), event -> {
+                synchronized (UI.this) {
+                    graphPane.setChannelCompositionMode(mode);
+                    deviceModel.setChannelCompositionMode(mode);
+                }
+            });
+            channelsActions.put(mode, setChannels);
+            if (deviceModel.isChannelsModeSet(mode)) {
+                setChannels.actionPerformed(null);
+            }
+        }
+        return channelsActions;
     }
 
     private JMenu createTraceLevelMenu() {

@@ -114,7 +114,7 @@ public class CustomAxisEditionDialog extends JDialog {
         panel.add(styleLabel(new JLabel("Start value")), constraints);
 
         constraints.gridx++;
-        startValueTextField = createMumberField(dynamicFormatters);
+        startValueTextField = createNumberField(dynamicFormatters);
         startValueTextField.setValue(axisBuilder.getStartValue());
         panel.add(startValueTextField, constraints);
 
@@ -123,7 +123,7 @@ public class CustomAxisEditionDialog extends JDialog {
         panel.add(styleLabel(new JLabel("End value")), constraints);
 
         constraints.gridx++;
-        endValueTextField = createMumberField(dynamicFormatters);
+        endValueTextField = createNumberField(dynamicFormatters);
         endValueTextField.setValue(axisBuilder.getEndValue());
         panel.add(endValueTextField, constraints);
 
@@ -132,7 +132,7 @@ public class CustomAxisEditionDialog extends JDialog {
         panel.add(styleLabel(new JLabel("Increment")), constraints);
 
         constraints.gridx++;
-        incrementTextField = createMumberField(dynamicFormatters);
+        incrementTextField = createNumberField(dynamicFormatters);
         incrementTextField.setValue(axisBuilder.getIncrement());
         panel.add(incrementTextField, constraints);
 
@@ -179,10 +179,16 @@ public class CustomAxisEditionDialog extends JDialog {
             }
         });
 
+        incrementTextField.addPropertyChangeListener("editValid", e
+                -> incrementTextField.setBackground(incrementTextField.isEditValid() ? null : Color.RED));
+
         incrementTextField.addPropertyChangeListener("value", e -> {
+            double startValue = getDoubleValue(startValueTextField);
+            double endValue = getDoubleValue(endValueTextField);
             double increment = getDoubleValue(incrementTextField);
-            if (increment < 0) {
-                incrementTextField.setValue(-increment);
+            double minIncrement = (endValue - startValue) / 100;
+            if (increment < minIncrement) {
+                incrementTextField.setValue(minIncrement);
             }
         });
 
@@ -220,7 +226,7 @@ public class CustomAxisEditionDialog extends JDialog {
         });
     }
 
-    private JFormattedTextField createMumberField(List<NumberFormatter> dynamicFormatters) {
+    private JFormattedTextField createNumberField(List<NumberFormatter> dynamicFormatters) {
         final NumberFormatter defaultFormatter = new NumberFormatter(new DecimalFormat(axisBuilder.getFormat()));
         final NumberFormatter displayFormatter = new NumberFormatter(new DecimalFormat(axisBuilder.getFormat()));
         final NumberFormatter editFormatter = new NumberFormatter(new DecimalFormat());

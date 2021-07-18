@@ -18,6 +18,7 @@ import java.util.Map;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 import org.hihan.girinoscope.comm.FrameFormat;
+import org.hihan.girinoscope.comm.Girino;
 import org.hihan.girinoscope.ui.Axis.GraphLabel;
 
 @SuppressWarnings("serial")
@@ -29,7 +30,9 @@ public class GraphPane extends JPanel {
 
     private static final Color TEXT_COLOR = new Color(0x9a9a9a);
 
-    private static final Color DATA_COLOR = Color.CYAN.darker();
+    private static final Color[] DATA_COLORS = {Color.CYAN.darker(), Color.ORANGE};
+
+    private static final Color XY_DATA_COLOR = Color.MAGENTA;
 
     private static final Color THRESHOLD_COLOR = Color.ORANGE.darker();
 
@@ -43,13 +46,13 @@ public class GraphPane extends JPanel {
 
     private Stroke dataStroke = new BasicStroke(1, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL);
 
-    private Axis xAxis;
+    private Axis xAxis, xAxisBackup;
 
     private Axis yAxis;
 
     private FrameFormat frameFormat;
 
-    private int uMax;
+    private int uMax, uMaxBackup;
 
     private int vMax;
 
@@ -57,7 +60,11 @@ public class GraphPane extends JPanel {
 
     private Rectangle graphArea;
 
+    private boolean triggerEnabled;
+
     private int threshold;
+
+    private Girino.ChannelCompositionMode channelCompositionMode;
 
     private int waitDuration;
 
@@ -77,13 +84,17 @@ public class GraphPane extends JPanel {
             public void mouseMoved(MouseEvent event) {
                 Map<Rule, Point> anchors = new HashMap<>();
 
-                Point thresholdRuleAnchorLocation = toGraphArea(uMax, threshold);
-                SwingUtilities.convertPointToScreen(thresholdRuleAnchorLocation, GraphPane.this);
-                anchors.put(Rule.THRESHOLD_RULE, thresholdRuleAnchorLocation);
+                if (triggerEnabled) {
+                    Point thresholdRuleAnchorLocation = toGraphArea(uMax, threshold);
+                    SwingUtilities.convertPointToScreen(thresholdRuleAnchorLocation, GraphPane.this);
+                    anchors.put(Rule.THRESHOLD_RULE, thresholdRuleAnchorLocation);
+                }
 
-                Point waitDurationRuleAnchorLocation = toGraphArea(waitDuration, vMax);
-                SwingUtilities.convertPointToScreen(waitDurationRuleAnchorLocation, GraphPane.this);
-                anchors.put(Rule.WAIT_DURATION_RULE, waitDurationRuleAnchorLocation);
+                if (!isXY(channelCompositionMode)) {
+                    Point waitDurationRuleAnchorLocation = toGraphArea(waitDuration, vMax);
+                    SwingUtilities.convertPointToScreen(waitDurationRuleAnchorLocation, GraphPane.this);
+                    anchors.put(Rule.WAIT_DURATION_RULE, waitDurationRuleAnchorLocation);
+                }
 
                 if (grabbedRule != null) {
                     boolean stillLocked = anchors.get(grabbedRule).distance(event.getLocationOnScreen()) < HAND_RADIUS;
@@ -134,8 +145,29 @@ public class GraphPane extends JPanel {
         });
     }
 
+    public void setTriggerEnabled(boolean enabled) {
+        this.triggerEnabled = enabled;
+        repaint();
+    }
+
     public void setThreshold(int threshold) {
         this.threshold = threshold;
+        repaint();
+    }
+
+    public void setChannelCompositionMode(Girino.ChannelCompositionMode channelCompositionMode) {
+        if (isXY(this.channelCompositionMode) != isXY(channelCompositionMode)) {
+            if (isXY(channelCompositionMode)) {
+                xAxisBackup = xAxis;
+                xAxis = yAxis;
+                uMaxBackup = uMax;
+                uMax = vMax;
+            } else {
+                xAxis = xAxisBackup;
+                uMax = uMaxBackup;
+            }
+        }
+        this.channelCompositionMode = channelCompositionMode;
         repaint();
     }
 
@@ -150,17 +182,29 @@ public class GraphPane extends JPanel {
     }
 
     public void setCoordinateSystem(Axis xAxis, Axis yAxis) {
-        this.xAxis = xAxis;
+        if (isXY(channelCompositionMode)) {
+            xAxisBackup = xAxis;
+            xAxis = yAxis;
+        } else {
+            this.xAxis = xAxis;
+        }
         this.yAxis = yAxis;
         repaint();
     }
 
     public void setXCoordinateSystem(Axis xAxis) {
-        this.xAxis = xAxis;
-        repaint();
+        if (isXY(channelCompositionMode)) {
+            xAxisBackup = xAxis;
+        } else {
+            this.xAxis = xAxis;
+            repaint();
+        }
     }
 
     public void setYCoordinateSystem(Axis yAxis) {
+        if (isXY(channelCompositionMode)) {
+            xAxis = yAxis;
+        }
         this.yAxis = yAxis;
         repaint();
     }
@@ -169,6 +213,10 @@ public class GraphPane extends JPanel {
         this.frameFormat = frameFormat;
         uMax = frameFormat.sampleCount - 1;
         vMax = frameFormat.sampleMaxValue;
+        if (isXY(channelCompositionMode)) {
+            uMaxBackup = uMax;
+            uMax = vMax;
+        }
     }
 
     public void setData(byte[] data) {
@@ -186,6 +234,10 @@ public class GraphPane extends JPanel {
 
     public int getThreshold() {
         return threshold;
+    }
+
+    public Girino.ChannelCompositionMode getChannelCompositionMode() {
+        return channelCompositionMode;
     }
 
     public int getWaitDuration() {
@@ -221,8 +273,12 @@ public class GraphPane extends JPanel {
                 if (data != null) {
                     paintData(g2d);
                 }
-                paintWaitDurationRule(g2d);
-                paintThresholdRule(g2d);
+                if (!isXY(channelCompositionMode)) {
+                    paintWaitDurationRule(g2d);
+                }
+                if (triggerEnabled) {
+                    paintThresholdRule(g2d);
+                }
             }
         }
     }
@@ -282,16 +338,45 @@ public class GraphPane extends JPanel {
     }
 
     private void paintData(Graphics2D g) {
-        g.setColor(DATA_COLOR);
+        if (isXY(channelCompositionMode)) {
+            paintDataXY(g);
+        } else {
+            paintMultiChannelData(g, channelCompositionMode.value);
+        }
+    }
+
+    private void paintMultiChannelData(Graphics2D g, int channelCount) {
         Stroke defaultStroke = g.getStroke();
         g.setStroke(dataStroke);
-        int u = uMax;
-        Point previousPoint = null;
-        for (int value : getValues()) {
-            if (value < 0 || value > frameFormat.sampleMaxValue) {
-                System.err.println("value -> " + value);
+        int[] values = getValues();
+        for (int channel = 0; channel < channelCount; ++channel) {
+            g.setColor(DATA_COLORS[channel % DATA_COLORS.length]);
+            int u = uMax;
+            Point previousPoint = null;
+            for (int i = channel; i < values.length; i += channelCount) {
+                int v = values[i];
+                assert v >= 0 && v <= frameFormat.sampleMaxValue;
+                Point point = toGraphArea(u, v);
+                u -= channelCount;
+                if (previousPoint != null) {
+                    g.drawLine(previousPoint.x, previousPoint.y, point.x, point.y);
+                }
+                previousPoint = point;
             }
-            Point point = toGraphArea(u--, value);
+        }
+        g.setStroke(defaultStroke);
+    }
+
+    private void paintDataXY(Graphics2D g) {
+        Stroke defaultStroke = g.getStroke();
+        g.setStroke(dataStroke);
+        g.setColor(XY_DATA_COLOR);
+        Point previousPoint = null;
+        int[] values = getValues();
+        for (int i = 0; i < values.length; i += 2) {
+            int u = uMax - values[i];
+            int v = values[i + 1];
+            Point point = toGraphArea(u, v);
             if (previousPoint != null) {
                 g.drawLine(previousPoint.x, previousPoint.y, point.x, point.y);
             }
@@ -346,5 +431,9 @@ public class GraphPane extends JPanel {
         int u = Math.round(uMax - (x - graphArea.x) * uMax / graphArea.width);
         int v = Math.round(vMax - (y - graphArea.y) * vMax / graphArea.height);
         return new Point(u, v);
+    }
+
+    private static boolean isXY(Girino.ChannelCompositionMode channelCompositionMode) {
+        return channelCompositionMode == Girino.ChannelCompositionMode.XY;
     }
 }
