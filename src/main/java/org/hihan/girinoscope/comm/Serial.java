@@ -132,7 +132,6 @@ public class Serial implements Closeable {
                      * Sleeping here allows us to be interrupted (the serial
                      * input is not interruptible itself).
                      */
-                    LOGGER.log(Level.FINE, "Sleep while reading bytes. Only have {0}", offset);
                     Thread.sleep(READ_DELAY);
                 }
             }

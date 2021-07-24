@@ -245,7 +245,7 @@ public class Device {
     }
 
     public long getChainedCommandDelay() {
-        return setupDelayOnReset;
+        return chainedCommandDelay;
     }
 
     public String getReadyMessage() {

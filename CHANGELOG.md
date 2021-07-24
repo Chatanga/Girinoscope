@@ -1,6 +1,8 @@
 # Changelog
 
 ## [1.4.0-SNAPSHOT]
+### Added
+- New Girino variant with automatic trigger and multichannels (SoftGirino).
 
 ## [1.3.5]
 ### Fixed
