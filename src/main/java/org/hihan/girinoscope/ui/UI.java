@@ -372,7 +372,7 @@ public class UI extends JFrame {
 
         graphPane = new GraphPane();
         graphPane.setYCoordinateSystem(yAxisBuilder.build());
-        graphPane.setPreferredSize(new Dimension(1024, 768));
+        graphPane.setPreferredSize(new Dimension(1024, 600));
         deviceModel.addPropertyChangeListener(DeviceModel.DEVICE_PROPERTY_NAME, event -> {
             graphPane.setFrameFormat(deviceModel.getDevice().getFrameFormat());
             graphPane.setChannelCompositionMode(deviceModel.getChannelCompositionMode());
