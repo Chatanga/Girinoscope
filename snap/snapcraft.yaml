@@ -1,5 +1,6 @@
 name: girinoscope
-version: '1.4.0'
+# Lastest digit distinguishes between Snapcraft builds.
+version: '1.4.0.0'
 
 title: Girinoscope
 summary: A simple Java graphical user interface for Girino, a Fast Arduino Oscilloscope
