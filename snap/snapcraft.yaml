@@ -27,13 +27,10 @@ parts:
     source: .
     source-type: local
     maven-options:
+      # Workaround for:
+      #   https://bugs.launchpad.net/snapcraft/+bug/1927312
+      #   https://bugs.launchpad.net/ubuntu/+source/openjdk-lts/+bug/1927839
       [-Dhttps.protocols=TLSv1.2]
-    # Workaround for:
-    #   https://bugs.launchpad.net/snapcraft/+bug/1927312
-    #   https://bugs.launchpad.net/ubuntu/+source/openjdk-lts/+bug/1927839
-    
-    #	Old dashboard, useful to know why a release is rejected.
-    #	https://dashboard.snapcraft.io/snaps/girinoscope
     stage-packages:
       - default-jre
   cleanup:
@@ -45,7 +42,13 @@ parts:
       - gnome-3-28-1804
     override-prime: |
       snapcraftctl prime
-      rm $SNAPCRAFT_PRIME/jar/girinoscope-*.jar # Only the JAR with dependencies is needed.
+      # Only the JAR with dependencies is needed.
+      rm $SNAPCRAFT_PRIME/jar/girinoscope-*.jar
+      # Workaround for:
+      #   https://forum.snapcraft.io/t/resolve-package-contains-external-symlinks-error-when-trying-to-snap/2963/23
+      # (Old dashboard, useful to know why a release is rejected:
+      #   https://dashboard.snapcraft.io/snaps/girinoscope)
+      rm -vf usr/lib/jvm/java-11-openjdk-*/lib/security/blacklisted.certs
 
 apps:
   girinoscope:
