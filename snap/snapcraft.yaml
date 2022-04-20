@@ -1,6 +1,6 @@
 name: girinoscope
 # Lastest digit distinguishes between Snapcraft builds.
-version: '1.4.0.0'
+version: '1.4.0'
 
 title: Girinoscope
 summary: A simple Java graphical user interface for Girino, a Fast Arduino Oscilloscope
@@ -31,6 +31,9 @@ parts:
     # Workaround for:
     #   https://bugs.launchpad.net/snapcraft/+bug/1927312
     #   https://bugs.launchpad.net/ubuntu/+source/openjdk-lts/+bug/1927839
+    
+    #	Old dashboard, useful to know why a release is rejected.
+    #	https://dashboard.snapcraft.io/snaps/girinoscope
     stage-packages:
       - default-jre
   cleanup:
@@ -41,10 +44,7 @@ parts:
       - core18
       - gnome-3-28-1804
     override-prime: |
-      set -eux
-      for snap in "core18" "gnome-3-28-1804"; do # List all content-snaps and base snaps you're using here
-        cd "/snap/$snap/current" && find . -type f,l -exec rm -f "$SNAPCRAFT_PRIME/{}" \;
-      done
+      snapcraftctl prime
       rm $SNAPCRAFT_PRIME/jar/girinoscope-*.jar # Only the JAR with dependencies is needed.
 
 apps:
